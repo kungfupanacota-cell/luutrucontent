@@ -65,18 +65,29 @@
     --shadow: 0 1px 3px rgba(0,0,0,0.2); --shadow-lg: 0 4px 12px rgba(0,0,0,0.3);
     color-scheme: dark;
   }
-  html { -webkit-text-size-adjust: 100%; }
+  html {
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior-x: none;          /* chặn vuốt ngang lùi/tiến trang */
+    touch-action: pan-x pan-y;            /* tắt nhấn đúp phóng to */
+  }
   body {
     background: var(--bg); color: var(--fg); font-family: var(--font-body);
     font-size: 17px; line-height: 1.5;
+    overscroll-behavior-x: none;
+    touch-action: manipulation;           /* tắt double-tap zoom, giữ cuộn & chạm */
     padding-left: max(14px, env(safe-area-inset-left, 0px));
     padding-right: max(14px, env(safe-area-inset-right, 0px));
     padding-block: 0; max-width: 800px; margin: 0 auto;
     -webkit-font-smoothing: antialiased;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-touch-callout: none; }
   /* iOS: input >=16px để Safari không tự phóng to khi gõ */
   input, textarea, select, button { font-size: 16px; }
+  button, .pick-item, .compact-row, .tab { touch-action: manipulation; }
+  /* ảnh không bị nhấn đúp phóng to, nhưng vẫn nhấn giữ để lưu được */
+  .flow-preview, .pick-item img, .img-copy-item img { touch-action: manipulation; }
+  input, textarea { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
+  .post-content, .rw-box, .flow-textbox { -webkit-touch-callout: default; -webkit-user-select: text; user-select: text; }
 
   /* ── Header ── */
   .header { padding: 18px 0 16px; display: flex; align-items: center; justify-content: space-between; }
@@ -135,6 +146,44 @@
     border-radius: var(--radius); padding: 16px; text-align: left; font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
   .flow-status { font-size: 17px; font-weight: 600; color: var(--fg); }
   .flow-hint { font-size: 15px; color: var(--fg-secondary); line-height: 1.5; }
+
+  /* ── Kho sản phẩm (Quét giá) ── */
+  .ocr-prog { margin: 10px 0; padding: 14px; border-radius: 12px; background: var(--warning-light);
+    border: 1px solid var(--warning); font-size: 15px; text-align: center; }
+  .cat-item { display: flex; gap: 10px; align-items: center; padding: 10px 0;
+    border-bottom: 1px solid var(--border); }
+  .cat-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+  .cat-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .cat-in { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--fg); font-family: var(--font-body); font-size: 16px; }
+  .cat-in:focus { outline: none; border-color: var(--accent); }
+  .cat-price { font-weight: 700; }
+  .cat-price.empty { border-color: var(--warning); background: var(--warning-light); }
+  .cat-acts { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .cat-acts button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); font-size: 17px; cursor: pointer; }
+
+  /* ── Ghép ảnh ── */
+  .cl-info { padding: 14px; border-radius: 12px; background: var(--surface-alt);
+    text-align: center; font-size: 15px; margin-bottom: 14px; }
+  .cl-out { margin-top: 18px; }
+  .cl-img { width: 100%; border-radius: 14px; border: 1px solid var(--border); display: block; }
+  .cl-row { display: flex; gap: 10px; margin: 12px 0; }
+  .cl-row .st-btn { margin-bottom: 0; }
+  .cl-greet { margin-top: 22px; padding: 16px; border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--border); }
+  .cl-greet-head { display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; font-size: 16px; }
+  .cl-mini { background: var(--surface-alt); border: 1px solid var(--border); color: var(--fg);
+    border-radius: 18px; padding: 8px 14px; font-size: 14px; font-family: var(--font-body); cursor: pointer; }
+  .cl-greet-box { background: var(--accent-light); border: 1px solid var(--accent);
+    border-radius: 12px; padding: 14px; font-size: 15px; line-height: 1.6;
+    white-space: pre-wrap; min-height: 64px; }
+  .gr-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px 0;
+    border-bottom: 1px solid var(--border); }
+  .gr-text { flex: 1; font-size: 15px; line-height: 1.5; white-space: pre-wrap; }
+  .gr-item button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); font-size: 16px; cursor: pointer; flex-shrink: 0; }
 
   /* ── Thông báo bản mới ── */
   .upd-banner { position: sticky; top: 0; z-index: 50; margin: 0 -14px 12px;
@@ -604,6 +653,9 @@
     <p id="postCount">0 bài đăng</p>
   </div>
   <div class="header-right">
+    <button class="icon-btn" onclick="openCollage()" title="Ghép ảnh ngẫu nhiên">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
     <button class="icon-btn" onclick="runDiagnostic()" title="Kiểm tra khả năng máy">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </button>
@@ -634,6 +686,35 @@
         <button class="rw-again" onclick="rewriteAgain()">🔄 Viết lại lần nữa</button>
         <button class="rw-apply" onclick="rewriteApply()">✅ Dùng bản này</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- GHÉP ẢNH (Tính năng A) -->
+<div id="collageView" class="settings-panel" hidden>
+  <button class="back-btn" onclick="toggleView('main')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Quay lại danh sách bài đăng
+  </button>
+  <div id="collageBody"></div>
+</div>
+
+<!-- KHO CÂU CHÀO -->
+<div class="modal-overlay" id="greetModal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Kho câu chào của tôi</h2>
+      <button class="modal-close" onclick="closeGreetBank()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="form-label">Thêm câu chào bạn hay dùng</label>
+        <textarea id="greetInput" class="form-textarea" rows="4"
+          placeholder="Ví dụ: Kính chào quý khách! Cảm ơn anh chị đã quan tâm shop. Anh chị tham khảo giúp em các mẫu mới về hôm nay ạ, cần tư vấn gì anh chị cứ nhắn tin em hỗ trợ ngay ạ!"></textarea>
+        <button class="st-btn st-main" style="margin-top:10px" onclick="addGreeting()">➕ Lưu câu này</button>
+      </div>
+      <div id="greetList"></div>
+      <p class="st-note">App chỉ dùng câu do chính bạn nhập để tạo biến thể, giữ nguyên giọng tôn trọng, trân trọng và vui vẻ.</p>
     </div>
   </div>
 </div>
@@ -677,7 +758,27 @@
   <div class="tabs">
     <button class="tab active" onclick="switchSettingsTab('sync',this)">Sửa đồng bộ</button>
     <button class="tab" onclick="switchSettingsTab('phrases',this)">Câu chung</button>
+    <button class="tab" onclick="switchSettingsTab('price',this)">Quét giá</button>
     <button class="tab" onclick="switchSettingsTab('storage',this)">Bộ nhớ</button>
+  </div>
+
+  <div id="priceTab" hidden>
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
+          <h3>🏷️ Kho sản phẩm &amp; giá</h3>
+          <p id="catCount">0 sản phẩm trong kho</p>
+        </div>
+      </div>
+      <div class="ss-body">
+        <label class="st-btn st-main">📷 Tải ảnh sản phẩm (có ghi giá)
+          <input type="file" accept="image/*" multiple hidden onchange="addCatalogImages(event)">
+        </label>
+        <div id="ocrProgress" class="ocr-prog" hidden></div>
+        <p class="st-note">App đọc giá trên ảnh bằng nhận dạng chữ. Đọc sai thì sửa tay ở ô giá. Kho này <b>chỉ dùng cho Ghép ảnh</b>, không ảnh hưởng tới bài đăng.</p>
+        <div id="catalogList"></div>
+      </div>
+    </div>
   </div>
 
   <div id="storageTab" hidden>
@@ -852,7 +953,7 @@ let currentImages = []; // array of data URLs
 let lbImages = []; let lbIdx = 0;
 
 // ═══ Phiên bản & tự kiểm tra bản mới ═══
-const APP_VERSION = '2026.11.10-21';
+const APP_VERSION = '2026.11.10-22';
 
 async function checkUpdate(manual) {
   try {
@@ -1032,16 +1133,27 @@ function toggleView(view) {
   currentView = view;
   document.getElementById('mainView').hidden = view !== 'main';
   document.getElementById('settingsView').hidden = view !== 'settings';
+  document.getElementById('collageView').hidden = view !== 'collage';
   document.getElementById('settingsBtn').classList.toggle('active', view === 'settings');
   if (view === 'settings') { renderVars(); }
+  if (view === 'collage') { renderCollageHome(); }
+  window.scrollTo(0, 0);
 }
 function switchSettingsTab(tab, el) {
   document.getElementById('syncTab').hidden = tab !== 'sync';
   document.getElementById('phrasesTab').hidden = tab !== 'phrases';
+  document.getElementById('priceTab').hidden = tab !== 'price';
   document.getElementById('storageTab').hidden = tab !== 'storage';
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('#settingsView .tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
   if (tab === 'storage') renderStorage();
+  if (tab === 'price') renderCatalog();
+}
+// Mở thẳng một tab trong Cài đặt
+function switchToTab(tab) {
+  const labels = { sync: 'Sửa đồng bộ', phrases: 'Câu chung', price: 'Quét giá', storage: 'Bộ nhớ' };
+  const el = [...document.querySelectorAll('#settingsView .tab')].find(t => t.textContent.trim() === labels[tab]);
+  switchSettingsTab(tab, el);
 }
 
 // ═══ Bộ nhớ ═══
@@ -1569,6 +1681,486 @@ function rewriteApply() {
     showToast('✅ Đã cập nhật nội dung mới');
   }
   closeRewrite();
+}
+
+
+// ══════════════════════════════════════════════════════════
+//  KHO SẢN PHẨM + GHÉP ẢNH + QUÉT GIÁ (độc lập với bài đăng)
+// ══════════════════════════════════════════════════════════
+let catalog = [];    // [{id, image, price, name, addedAt}]
+let greetings = [];  // [{id, text}]  — câu chào do CHÍNH người dùng nhập
+
+async function loadCatalog() {
+  try {
+    const c = await idbGet('catalog');
+    const g = await idbGet('greetings');
+    if (Array.isArray(c)) catalog = c;
+    if (Array.isArray(g)) greetings = g;
+  } catch (e) {}
+}
+async function saveCatalog() {
+  try { await idbSet('catalog', catalog); await idbSet('greetings', greetings); }
+  catch (e) { showToast('⚠️ Không lưu được kho sản phẩm', 3000); }
+}
+
+// ═══ Đọc giá từ chuỗi OCR ═══
+function extractPrice(text) {
+  if (!text) return '';
+  const t = text.replace(/[|]/g, '1').replace(/\s+/g, ' ');
+  const cands = [];
+
+  // 1.250.000đ / 1,250,000 VNĐ / 250.000 đ
+  let re = /(\d{1,3}(?:[.,]\d{3})+)\s*(?:đ|d|vnđ|vnd|₫)?/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    const n = parseInt(m[1].replace(/[.,]/g, ''), 10);
+    if (n >= 1000 && n <= 500000000) cands.push({ n, s: m[1].replace(/,/g, '.') + 'đ' });
+  }
+  // 250k / 99K
+  re = /(\d{1,4})\s*k\b/gi;
+  while ((m = re.exec(t))) {
+    const n = parseInt(m[1], 10) * 1000;
+    if (n >= 1000 && n <= 500000000) cands.push({ n, s: m[1] + 'k' });
+  }
+  // 1tr2 / 2 triệu
+  re = /(\d{1,3})\s*(?:tr|triệu)\s*(\d)?/gi;
+  while ((m = re.exec(t))) {
+    const n = parseInt(m[1], 10) * 1000000 + (m[2] ? parseInt(m[2], 10) * 100000 : 0);
+    cands.push({ n, s: m[1] + (m[2] ? 'tr' + m[2] : ' triệu') });
+  }
+
+  if (!cands.length) return '';
+  cands.sort((a, b) => b.n - a.n);   // giá lớn nhất thường là giá sản phẩm
+  return cands[0].s;
+}
+
+// ═══ OCR bằng Tesseract (tải khi cần) ═══
+let _tess = null;
+function loadTesseract() {
+  if (_tess) return _tess;
+  _tess = new Promise((res, rej) => {
+    if (window.Tesseract) return res(window.Tesseract);
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    s.onload = () => window.Tesseract ? res(window.Tesseract) : rej(new Error('Tesseract không tải được'));
+    s.onerror = () => rej(new Error('Không tải được thư viện OCR (cần Internet)'));
+    document.head.appendChild(s);
+  });
+  return _tess;
+}
+
+async function ocrPrice(dataUrl, onProgress) {
+  const T = await loadTesseract();
+  const r = await T.recognize(dataUrl, 'eng', {
+    logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress); }
+  });
+  return { text: r.data.text, price: extractPrice(r.data.text) };
+}
+
+// ═══ Thêm sản phẩm vào kho (Tính năng B) ═══
+let ocrOk = null;   // null = chưa hỏi, true = đồng ý tải, false = nhập tay
+
+async function addCatalogImages(e) {
+  const files = [...(e.target.files || [])];
+  e.target.value = '';
+  if (!files.length) return;
+
+  // Hỏi một lần trước khi tải thư viện OCR (khá nặng)
+  if (ocrOk === null && !window.Tesseract) {
+    ocrOk = confirm(
+      'ĐỌC GIÁ TỰ ĐỘNG\n\n' +
+      'Lần đầu dùng cần tải bộ nhận dạng chữ khoảng 15–20MB từ Internet.\n' +
+      'Nên dùng Wi-Fi. Các lần sau không phải tải lại.\n\n' +
+      'OK = Tải và đọc giá tự động\n' +
+      'Huỷ = Chỉ thêm ảnh, tôi tự nhập giá'
+    );
+  }
+
+  const box = document.getElementById('ocrProgress');
+  box.hidden = false;
+
+  for (let i = 0; i < files.length; i++) {
+    box.innerHTML = `Đang xử lý ảnh ${i + 1}/${files.length}...`;
+    const dataUrl = await new Promise(r => {
+      const fr = new FileReader(); fr.onload = ev => r(ev.target.result); fr.readAsDataURL(files[i]);
+    });
+
+    const item = { id: 'c' + Date.now() + '_' + i, image: dataUrl, price: '', name: '', addedAt: new Date().toISOString() };
+    if (ocrOk !== false) {
+      try {
+        box.innerHTML = `Đang đọc giá ảnh ${i + 1}/${files.length}... <span id="ocrPct">0%</span><br><small>Lần đầu phải tải bộ nhận dạng, hơi lâu</small>`;
+        const r = await ocrPrice(dataUrl, pr => {
+          const el = document.getElementById('ocrPct');
+          if (el) el.textContent = Math.round(pr * 100) + '%';
+        });
+        item.price = r.price;
+      } catch (err) {
+        box.innerHTML = `⚠️ ${err.message}<br><small>Bạn vẫn thêm được ảnh và nhập giá bằng tay.</small>`;
+        ocrOk = false;   // không thử lại cho các ảnh sau
+        await new Promise(r => setTimeout(r, 2500));
+      }
+    }
+    catalog.push(item);
+    await saveCatalog();
+    renderCatalog();
+  }
+
+  box.hidden = true;
+  const noPrice = catalog.filter(c => !c.price).length;
+  showToast(noPrice
+    ? `✅ Đã thêm ${files.length} sản phẩm. ${noPrice} ảnh chưa đọc được giá — hãy nhập tay.`
+    : `✅ Đã thêm ${files.length} sản phẩm kèm giá`, 4000);
+}
+
+function setCatalogPrice(id, val) {
+  const it = catalog.find(c => c.id === id);
+  if (it) { it.price = val.trim(); saveCatalog(); }
+}
+function setCatalogName(id, val) {
+  const it = catalog.find(c => c.id === id);
+  if (it) { it.name = val.trim(); saveCatalog(); }
+}
+function delCatalog(id) {
+  if (!confirm('Xoá sản phẩm này khỏi kho?')) return;
+  catalog = catalog.filter(c => c.id !== id);
+  saveCatalog(); renderCatalog(); renderCollageHome();
+}
+async function rescanPrice(id) {
+  const it = catalog.find(c => c.id === id);
+  if (!it) return;
+  const box = document.getElementById('ocrProgress');
+  box.hidden = false; box.innerHTML = 'Đang đọc lại giá... <span id="ocrPct">0%</span>';
+  try {
+    const r = await ocrPrice(it.image, pr => {
+      const el = document.getElementById('ocrPct'); if (el) el.textContent = Math.round(pr * 100) + '%';
+    });
+    it.price = r.price;
+    await saveCatalog(); renderCatalog();
+    showToast(r.price ? '✅ Đọc được giá: ' + r.price : '⚠️ Vẫn không đọc được giá, hãy nhập tay', 3500);
+  } catch (err) { showToast('⚠️ ' + err.message, 3500); }
+  box.hidden = true;
+}
+
+function renderCatalog() {
+  const el = document.getElementById('catalogList');
+  if (!el) return;
+  document.getElementById('catCount').textContent = catalog.length + ' sản phẩm trong kho';
+  if (!catalog.length) {
+    el.innerHTML = '<p class="st-note">Chưa có sản phẩm nào. Tải ảnh sản phẩm (ảnh có ghi giá) lên để bắt đầu.</p>';
+    return;
+  }
+  el.innerHTML = catalog.map(c => `<div class="cat-item">
+    <img src="${c.image}" alt="">
+    <div class="cat-fields">
+      <input class="cat-in" value="${esc(c.name || '')}" placeholder="Tên sản phẩm (không bắt buộc)"
+        oninput="setCatalogName('${c.id}', this.value)">
+      <input class="cat-in cat-price ${c.price ? '' : 'empty'}" value="${esc(c.price || '')}" placeholder="Giá — chưa đọc được, nhập tay"
+        oninput="setCatalogPrice('${c.id}', this.value)">
+    </div>
+    <div class="cat-acts">
+      <button onclick="rescanPrice('${c.id}')" title="Đọc lại giá">🔍</button>
+      <button onclick="delCatalog('${c.id}')" title="Xoá">🗑</button>
+    </div>
+  </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  TÍNH NĂNG A — GHÉP ẢNH NGẪU NHIÊN
+// ══════════════════════════════════════════════════════════
+let collage = null;   // { items:[], dataUrl, greeting }
+
+function openCollage() { toggleView('collage'); renderCollageHome(); }
+
+function renderCollageHome() {
+  const el = document.getElementById('collageBody');
+  if (!el) return;
+  const n = catalog.length;
+  const withPrice = catalog.filter(c => c.price).length;
+
+  if (!n) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🖼</div>
+      <h3>Kho sản phẩm trống</h3>
+      <p>Vào Cài đặt → Quét giá để tải ảnh sản phẩm lên trước.</p></div>
+      <button class="st-btn st-main" onclick="toggleView('settings');switchToTab('price')">Mở Quét giá</button>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="cl-info">
+      <b>${n}</b> sản phẩm trong kho${withPrice < n ? ` · <span style="color:var(--warning)">${n - withPrice} chưa có giá</span>` : ' · tất cả đã có giá'}
+    </div>
+    <button class="flow-btn" onclick="makeCollage()">🎲 Tạo ảnh ngẫu nhiên</button>
+    <p class="st-note" style="text-align:center;margin-top:10px">Bốc ngẫu nhiên tối đa 8 sản phẩm, ghép thành một ảnh kèm giá</p>
+    <div id="collageResult"></div>`;
+}
+
+// Ghép ảnh trên canvas
+async function makeCollage() {
+  if (!catalog.length) return;
+  const btn = document.querySelector('#collageBody .flow-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Đang ghép ảnh...'; }
+
+  // bốc ngẫu nhiên tối đa 8
+  const pool = catalog.slice();
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  const items = pool.slice(0, Math.min(8, pool.length));
+
+  try {
+    const dataUrl = await drawCollage(items);
+    collage = { items, dataUrl, greeting: pickGreeting() };
+    renderCollageResult();
+  } catch (e) {
+    showToast('❌ Không ghép được ảnh: ' + e.message, 3500);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🎲 Tạo ảnh ngẫu nhiên'; }
+}
+
+function gridFor(n) {
+  if (n <= 1) return [1, 1];
+  if (n === 2) return [2, 1];
+  if (n <= 4) return [2, 2];
+  if (n <= 6) return [3, 2];
+  return [4, 2];
+}
+
+async function drawCollage(items) {
+  const [cols, rows] = gridFor(items.length);
+  const CELL = 520, PAD = 14, LABEL = 92;
+  const W = cols * CELL + PAD * (cols + 1);
+  const H = rows * (CELL + LABEL) + PAD * (rows + 1);
+
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#ffffff';
+  x.fillRect(0, 0, W, H);
+
+  const imgs = await Promise.all(items.map(it => new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error('ảnh lỗi'));
+    im.src = it.image;
+  })));
+
+  items.forEach((it, i) => {
+    const c = i % cols, r = Math.floor(i / cols);
+    const cx = PAD + c * (CELL + PAD);
+    const cy = PAD + r * (CELL + LABEL + PAD);
+
+    // khung ảnh
+    x.save();
+    x.fillStyle = '#f5f5f3';
+    roundRect(x, cx, cy, CELL, CELL, 18); x.fill();
+    x.clip();
+
+    // vẽ ảnh kiểu "cover"
+    const im = imgs[i];
+    const s = Math.max(CELL / im.naturalWidth, CELL / im.naturalHeight);
+    const dw = im.naturalWidth * s, dh = im.naturalHeight * s;
+    x.drawImage(im, cx + (CELL - dw) / 2, cy + (CELL - dh) / 2, dw, dh);
+    x.restore();
+
+    // nhãn giá
+    const price = it.price || 'Liên hệ';
+    const ly = cy + CELL + 8;
+    x.fillStyle = '#2D7A5F';
+    roundRect(x, cx, ly, CELL, LABEL - 16, 14); x.fill();
+
+    x.fillStyle = '#ffffff';
+    x.textAlign = 'center';
+    x.textBaseline = 'middle';
+    x.font = 'bold 46px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    x.fillText(price, cx + CELL / 2, ly + (LABEL - 16) / 2, CELL - 24);
+
+    // tên sản phẩm (nếu có) ở góc ảnh
+    if (it.name) {
+      x.save();
+      x.fillStyle = 'rgba(0,0,0,.62)';
+      x.font = '600 30px -apple-system, BlinkMacSystemFont, sans-serif';
+      const tw = Math.min(x.measureText(it.name).width + 24, CELL - 20);
+      roundRect(x, cx + 10, cy + 10, tw, 46, 10); x.fill();
+      x.fillStyle = '#fff'; x.textAlign = 'left'; x.textBaseline = 'middle';
+      x.fillText(it.name, cx + 22, cy + 33, CELL - 44);
+      x.restore();
+    }
+  });
+
+  return cv.toDataURL('image/jpeg', 0.92);
+}
+
+function roundRect(x, l, t, w, h, r) {
+  x.beginPath();
+  x.moveTo(l + r, t);
+  x.arcTo(l + w, t, l + w, t + h, r);
+  x.arcTo(l + w, t + h, l, t + h, r);
+  x.arcTo(l, t + h, l, t, r);
+  x.arcTo(l, t, l + w, t, r);
+  x.closePath();
+}
+
+function renderCollageResult() {
+  const el = document.getElementById('collageResult');
+  if (!el || !collage) return;
+  el.innerHTML = `
+    <div class="cl-out">
+      <img src="${collage.dataUrl}" alt="" class="cl-img">
+      <div class="cl-row">
+        <button class="st-btn" onclick="makeCollage()">🎲 Ghép lại</button>
+        <button class="st-btn" onclick="saveCollageJpg()">⬇️ Tải JPG</button>
+      </div>
+      <button class="flow-btn" onclick="shareCollage()">📤 Chia sẻ sang Zalo</button>
+    </div>
+
+    <div class="cl-greet">
+      <div class="cl-greet-head">
+        <b>Lời chào khách</b>
+        <button class="cl-mini" onclick="openGreetBank()">Kho câu của tôi</button>
+      </div>
+      <div class="cl-greet-box" id="greetBox">${collage.greeting ? esc(collage.greeting) : ''}</div>
+      <div class="cl-row">
+        <button class="st-btn" onclick="newGreetVariant()">🔄 Thay đổi mẫu</button>
+        <button class="st-btn st-main" onclick="copyGreeting()">📋 Copy</button>
+      </div>
+      ${greetings.length ? '' : '<p class="st-note">Bạn chưa có câu chào nào. Bấm "Kho câu của tôi" để nhập câu bạn hay dùng — app sẽ học và tạo biến thể từ chính câu của bạn.</p>'}
+    </div>`;
+}
+
+function saveCollageJpg() {
+  if (!collage) return;
+  const blob = dataUrlToBlob(collage.dataUrl);
+  const name = 'ghep-anh-' + Date.now() + '.jpg';
+  getDownloads().then(dl => {
+    if (dl) dl.save({ filename: name, data: blob }).then(() => showToast('✅ Đã tải ảnh')).catch(() => fallbackDownload(blob, name));
+    else fallbackDownload(blob, name);
+  }).catch(() => fallbackDownload(blob, name));
+}
+
+function shareCollage() {
+  if (!collage) return;
+  // copy lời chào trước (đồng bộ, giữ user-activation)
+  let copied = false;
+  if (collage.greeting) copied = copyTextDual(collage.greeting);
+
+  if (!navigator.share) { showToast('⚠️ Trình duyệt không hỗ trợ chia sẻ', 3000); return; }
+  const file = dataUrlToFile(collage.dataUrl, 'ghep-anh.jpg');
+  const data = { files: [file] };
+  if (navigator.canShare && !navigator.canShare(data)) { showToast('⚠️ Máy không chia sẻ được ảnh', 3000); return; }
+
+  navigator.share(data)
+    .then(() => showToast(copied
+      ? '✅ Đã gửi ảnh. Lời chào đã copy — dán vào ô mô tả'
+      : '✅ Đã gửi ảnh', 4500))
+    .catch(err => { if (err.name !== 'AbortError') showToast('⚠️ ' + (err.message || err.name), 3000); });
+}
+
+function copyGreeting() {
+  if (!collage || !collage.greeting) { showToast('Chưa có lời chào'); return; }
+  const ok = copyTextDual(collage.greeting, a => showToast(a ? '✅ Đã copy lời chào' : '❌ Không copy được', 2500));
+  if (ok) showToast('✅ Đã copy lời chào', 2500);
+}
+
+// ═══ Lời chào: học từ câu của người dùng ═══
+function pickGreeting() {
+  if (!greetings.length) return '';
+  const g = greetings[Math.floor(Math.random() * greetings.length)];
+  return g.text;
+}
+
+function newGreetVariant() {
+  if (!greetings.length) { openGreetBank(); return; }
+  const base = pickGreeting();
+  let v = greetVariant(base);
+  let t = 0;
+  while (v === base && t < 5) { v = greetVariant(base); t++; }
+  collage.greeting = v;
+  const box = document.getElementById('greetBox');
+  if (box) box.textContent = v;
+}
+
+// Bộ từ đồng nghĩa giữ 3 sắc thái: TÔN TRỌNG · TRÂN TRỌNG · VUI VẺ
+const GREET_SYN = [
+  ['chào', 'kính chào', 'xin chào', 'chào mừng'],
+  ['anh chị', 'quý khách', 'anh/chị', 'cô chú anh chị'],
+  ['cảm ơn', 'xin cảm ơn', 'chân thành cảm ơn', 'rất cảm ơn'],
+  ['quan tâm', 'ghé xem', 'ghé thăm', 'để mắt tới'],
+  ['ủng hộ', 'tin tưởng', 'đồng hành', 'thương mến'],
+  ['tham khảo', 'xem qua', 'ngắm qua', 'xem thử'],
+  ['liên hệ', 'nhắn tin', 'inbox', 'alo'],
+  ['tư vấn', 'hỗ trợ', 'giải đáp', 'giúp đỡ'],
+  ['nhiệt tình', 'tận tình', 'chu đáo', 'hết lòng'],
+  ['nhanh chóng', 'kịp thời', 'sớm nhất', 'tức thì'],
+  ['sản phẩm', 'mặt hàng', 'món đồ', 'hàng'],
+  ['giá', 'mức giá', 'giá bán'],
+  ['mới', 'mới nhất', 'vừa về', 'mới cập nhật'],
+  ['hôm nay', 'hôm nay nhé', 'ngày hôm nay'],
+  ['vui lòng', 'xin vui lòng', 'mời', 'kính mời'],
+  ['hy vọng', 'mong', 'rất mong', 'hân hạnh'],
+  ['phục vụ', 'được phục vụ', 'được đồng hành'],
+  ['chúc', 'kính chúc', 'thân chúc'],
+  ['vui vẻ', 'an lành', 'tốt lành', 'nhiều niềm vui'],
+  ['ạ', 'nhé ạ', 'ạ nha'],
+];
+
+function greetVariant(text) {
+  if (!text) return text;
+  const vault = [];
+  let w = text;
+  // giữ nguyên số điện thoại, giá, link, CHỮ HOA
+  KEEP_PATTERNS.forEach(re => { w = w.replace(re, m => { vault.push(m); return `\u0001${vault.length - 1}\u0002`; }); });
+  const lock = s => { vault.push(s); return `\u0001${vault.length - 1}\u0002`; };
+
+  const flat = [];
+  GREET_SYN.forEach(g => g.forEach(word => flat.push({ word, g })));
+  flat.sort((a, b) => b.word.length - a.word.length);
+
+  const used = new Set();
+  flat.forEach(({ word, g }) => {
+    if (used.has(g)) return;
+    const rx = () => new RegExp('(?<![\\p{L}])' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}])', 'giu');
+    if (!rx().test(w)) return;
+    used.add(g);
+    w = w.replace(rx(), m => lock(matchCase(m, pickDifferent(g, m))));
+  });
+
+  for (let i = 0; i < 5 && /\u0001\d+\u0002/.test(w); i++) {
+    w = w.replace(/\u0001(\d+)\u0002/g, (_, k) => vault[+k]);
+  }
+  return w;
+}
+
+// ═══ Kho câu chào của người dùng ═══
+function openGreetBank() {
+  document.getElementById('greetModal').hidden = false;
+  renderGreetBank();
+}
+function closeGreetBank() {
+  document.getElementById('greetModal').hidden = true;
+  if (collage && !collage.greeting && greetings.length) {
+    collage.greeting = pickGreeting();
+    renderCollageResult();
+  }
+}
+function renderGreetBank() {
+  const el = document.getElementById('greetList');
+  el.innerHTML = greetings.length
+    ? greetings.map(g => `<div class="gr-item">
+        <div class="gr-text">${esc(g.text)}</div>
+        <button onclick="delGreeting('${g.id}')" title="Xoá">🗑</button>
+      </div>`).join('')
+    : '<p class="st-note">Chưa có câu nào. Nhập câu chào bạn vẫn hay dùng vào ô dưới — app sẽ học và tạo biến thể từ chính câu của bạn, giữ đúng giọng tôn trọng, trân trọng và vui vẻ.</p>';
+}
+function addGreeting() {
+  const ta = document.getElementById('greetInput');
+  const t = ta.value.trim();
+  if (!t) return;
+  greetings.push({ id: 'g' + Date.now(), text: t });
+  ta.value = '';
+  saveCatalog(); renderGreetBank();
+  showToast('✅ Đã lưu vào kho câu của bạn');
+}
+function delGreeting(id) {
+  greetings = greetings.filter(g => g.id !== id);
+  saveCatalog(); renderGreetBank();
 }
 
 // ═══════════ ĐÁNH DẤU ĐÃ CHIA SẺ (tự hết sau khi sang ngày mới) ═══════════
@@ -2393,6 +2985,7 @@ document.getElementById('phraseModal').addEventListener('click', function(e) { i
 // ═══ Init ═══
 (async () => {
   await load();
+  await loadCatalog();
   // Chuyển bài đăng kiểu cũ (1 ảnh) sang kiểu nhiều ảnh
   posts.forEach(p => {
     if (p.image && !p.images) { p.images = [p.image]; delete p.image; }
