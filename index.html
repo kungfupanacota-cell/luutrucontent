@@ -133,6 +133,25 @@
   .flow-status { font-size: 17px; font-weight: 600; color: var(--fg); }
   .flow-hint { font-size: 15px; color: var(--fg-secondary); line-height: 1.5; }
 
+  /* ── Nút quay lại ── */
+  .back-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 15px 16px;
+    margin-bottom: 14px; border: 1px solid var(--border); border-radius: 13px;
+    background: var(--surface); color: var(--fg); font-size: 16px; font-weight: 600;
+    font-family: var(--font-body); cursor: pointer; min-height: 54px;
+    -webkit-tap-highlight-color: transparent; }
+  .back-btn:active { background: var(--surface-hover); transform: scale(0.99); }
+  .back-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  /* ── Đánh dấu đã chia sẻ ── */
+  .post-card.shared { opacity: 0.62; }
+  .post-card.shared .compact-thumb img { filter: grayscale(0.55); }
+  .shared-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--accent);
+    color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 7px;
+    white-space: nowrap; }
+  .thumb-check { position: absolute; inset: 0; background: rgba(45,122,95,.55);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 26px; font-weight: 700; }
+
   /* ── Bộ nhớ ── */
   .st-big { font-family: var(--font-display); font-size: 34px; font-weight: 700; line-height: 1.1; }
   .st-sub { font-size: 14px; color: var(--fg-secondary); margin-top: 4px; }
@@ -639,6 +658,10 @@
 
 <!-- Settings View -->
 <div id="settingsView" class="settings-panel" hidden>
+  <button class="back-btn" onclick="toggleView('main')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    Quay lại danh sách bài đăng
+  </button>
   <div class="tabs">
     <button class="tab active" onclick="switchSettingsTab('sync',this)">Sửa đồng bộ</button>
     <button class="tab" onclick="switchSettingsTab('phrases',this)">Câu chung</button>
@@ -1478,6 +1501,35 @@ function rewriteApply() {
   closeRewrite();
 }
 
+// ═══════════ ĐÁNH DẤU ĐÃ CHIA SẺ (tự hết sau khi sang ngày mới) ═══════════
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function isSharedToday(p) {
+  return !!p.sharedDay && p.sharedDay === todayKey();
+}
+function markShared(id) {
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  post.sharedDay = todayKey();
+  post.sharedAt = new Date().toISOString();
+  save();
+  renderPosts();
+}
+// Dọn dấu của những ngày trước
+function clearOldMarks() {
+  const t = todayKey();
+  let changed = false;
+  posts.forEach(p => { if (p.sharedDay && p.sharedDay !== t) { delete p.sharedDay; delete p.sharedAt; changed = true; } });
+  if (changed) save();
+  return changed;
+}
+// Kiểm tra lại khi quay lại app (phòng khi qua nửa đêm)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && clearOldMarks()) renderPosts();
+});
+
 // ═══════════ CHẾ ĐỘ ĐĂNG BÀI: chọn ảnh → chia sẻ ═══════════
 let flow = null; // { postId, picked:Set, textOn:bool }
 
@@ -1652,6 +1704,7 @@ function flowShare(mode) {
 
   navigator.share(data)
     .then(() => {
+      markShared(post.id);          // đánh dấu đã chia sẻ hôm nay
       if (mode === 'feed' && wantText) {
         flow.copied = textCopied;
         flow.shared = true;
@@ -2113,10 +2166,22 @@ function renderPosts() {
     return;
   }
 
+  clearOldMarks();   // sang ngày mới thì bỏ dấu cũ
+
   // Lọc theo từ khoá
   const si = document.getElementById('searchInput');
   const q = (si && !sw.hidden ? si.value : '').trim().toLowerCase();
-  const list = q ? posts.filter(p => (p.content || '').toLowerCase().includes(q)) : posts;
+  let list = q ? posts.filter(p => (p.content || '').toLowerCase().includes(q)) : posts.slice();
+
+  // Bài đã chia sẻ hôm nay trôi xuống cuối
+  list = list.slice().sort((a, b) => (isSharedToday(a) ? 1 : 0) - (isSharedToday(b) ? 1 : 0));
+
+  // Đếm số bài còn lại chưa chia sẻ
+  const left = posts.filter(p => !isSharedToday(p)).length;
+  const doneToday = posts.length - left;
+  document.getElementById('postCount').textContent = doneToday
+    ? `${left} bài chưa đăng · ${doneToday} đã đăng hôm nay`
+    : posts.length + ' bài đăng';
 
   if (!list.length) {
     c.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Không tìm thấy</h3><p>Thử từ khoá khác</p></div>';
@@ -2136,6 +2201,7 @@ function renderPosts() {
       ? `<div class="compact-thumb">
           <img src="${images[0]}" alt="" loading="lazy">
           ${images.length > 1 ? `<span class="img-count-badge">${images.length}</span>` : ''}
+          ${isSharedToday(post) ? '<span class="thumb-check">✓</span>' : ''}
         </div>`
       : `<div class="compact-no-img"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
 
@@ -2153,12 +2219,19 @@ function renderPosts() {
       }).join('') + '</div>';
     }
 
-    return `<div class="post-card" data-id="${post.id}">
+    const done = isSharedToday(post);
+    const sharedTime = done && post.sharedAt
+      ? new Date(post.sharedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    return `<div class="post-card${done ? ' shared' : ''}" data-id="${post.id}">
       <div class="compact-row" onclick="togglePost('${post.id}', event)">
         ${thumbHtml}
         <div class="compact-info">
           <div class="compact-preview">${esc(preview)}</div>
-          <div class="compact-meta">${metaParts}</div>
+          <div class="compact-meta">${done
+            ? `<span class="shared-tag">✓ Đã đăng ${sharedTime}</span>`
+            : metaParts}</div>
         </div>
         <div class="compact-actions">
           ${post.content ? `<button class="compact-cp" onclick="copyText('${post.id}', event)" title="Copy nội dung">
