@@ -86,6 +86,45 @@
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
   .tab:hover:not(.active) { color: var(--fg); }
 
+  /* ── Search ── */
+  .search-wrap { position: relative; margin-bottom: 14px; }
+  .search-wrap svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--fg-secondary); pointer-events: none; }
+  .search-input {
+    width: 100%; padding: 14px 16px 14px 42px; font-size: 16px; font-family: var(--font-body);
+    border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+    color: var(--fg); -webkit-appearance: none;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── POST FLOW (fullscreen) ── */
+  .flow { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .flow[hidden] { display: none !important; }
+  .flow-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .flow-close { background: none; border: none; color: var(--fg); font-size: 28px; line-height: 1; cursor: pointer; padding: 4px 10px; }
+  .flow-step { font-size: 15px; font-weight: 600; color: var(--fg-secondary); }
+  .flow-dots { display: flex; gap: 7px; justify-content: center; padding: 18px 0 10px; }
+  .flow-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: all .2s; }
+  .flow-dot.done { background: var(--accent); }
+  .flow-dot.now { background: var(--warning); transform: scale(1.5); }
+  .flow-mid { flex: 1; overflow-y: auto; padding: 0 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; }
+  .flow-preview { max-width: 100%; max-height: 38vh; border-radius: var(--radius); box-shadow: var(--shadow-lg); }
+  .flow-textbox { width: 100%; max-height: 38vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; text-align: left; font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
+  .flow-status { font-size: 17px; font-weight: 600; color: var(--fg); }
+  .flow-hint { font-size: 15px; color: var(--fg-secondary); line-height: 1.5; }
+  .flow-bottom { padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); }
+  .flow-btn {
+    width: 100%; padding: 20px; border: none; border-radius: 16px; background: var(--accent); color: #fff;
+    font-family: var(--font-body); font-size: 19px; font-weight: 700; cursor: pointer; min-height: 64px;
+    -webkit-tap-highlight-color: transparent; transition: transform .1s, background .15s;
+  }
+  .flow-btn:active { transform: scale(0.97); background: var(--accent-hover); }
+  .flow-btn.done-state { background: var(--surface-alt); color: var(--fg); }
+  .flow-btn.err-state { background: var(--danger); }
+  .flow-sub { width: 100%; margin-top: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 14px;
+    background: var(--surface); color: var(--fg-secondary); font-size: 15px; font-family: var(--font-body); cursor: pointer; }
+
   /* ── Add Button ── */
   .add-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
@@ -176,10 +215,12 @@
 
   /* ── Compact (collapsed) card ── */
   .compact-row {
-    display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
   }
+  .compact-row:active { background: var(--surface-hover); }
   .compact-thumb {
-    width: 52px; height: 52px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+    width: 60px; height: 60px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
     background: var(--surface-hover); position: relative;
   }
   .compact-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -188,29 +229,30 @@
     font-size: 0.5625rem; font-weight: 700; padding: 1px 5px; border-radius: 4px;
   }
   .compact-no-img {
-    width: 52px; height: 52px; border-radius: 8px; flex-shrink: 0;
+    width: 60px; height: 60px; border-radius: 10px; flex-shrink: 0;
     background: var(--accent-light); display: flex; align-items: center; justify-content: center;
     color: var(--accent); font-size: 1.25rem;
   }
   .compact-info { flex: 1; min-width: 0; }
   .compact-preview {
-    font-size: 0.8125rem; color: var(--fg); line-height: 1.4;
+    font-size: 0.9375rem; color: var(--fg); line-height: 1.4; font-weight: 500;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .compact-meta { font-size: 0.6875rem; color: var(--fg-secondary); margin-top: 3px; }
-  .compact-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .compact-meta { font-size: 0.75rem; color: var(--fg-secondary); margin-top: 4px; }
+  .compact-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
   .compact-copy {
-    display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px;
-    border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.75rem;
-    font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
-    background: var(--accent); color: #fff;
+    display: inline-flex; align-items: center; gap: 5px; padding: 12px 16px; min-height: 46px;
+    border-radius: 12px; font-family: var(--font-body); font-size: 0.9375rem;
+    font-weight: 700; cursor: pointer; border: none; transition: transform .1s, background 0.15s;
+    background: var(--accent); color: #fff; -webkit-tap-highlight-color: transparent;
   }
-  .compact-copy:hover { background: var(--accent-hover); }
-  .compact-copy svg { width: 14px; height: 14px; }
+  .compact-copy:active { transform: scale(0.94); background: var(--accent-hover); }
+  .compact-copy svg { width: 16px; height: 16px; }
   .compact-expand {
-    padding: 6px; border-radius: var(--radius-sm); background: var(--surface-hover);
+    padding: 12px 10px; min-height: 46px; border-radius: 12px; background: var(--surface-hover);
     border: none; color: var(--fg-secondary); cursor: pointer; display: flex;
     align-items: center; justify-content: center; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
   }
   .compact-expand:hover { background: var(--accent-light); color: var(--accent); }
   .compact-expand svg { width: 16px; height: 16px; transition: transform 0.2s; }
@@ -443,12 +485,31 @@
   </div>
 </div>
 
+<!-- POST FLOW -->
+<div class="flow" id="flowView" hidden>
+  <div class="flow-top">
+    <button class="flow-close" onclick="closeFlow()">&times;</button>
+    <span class="flow-step" id="flowStep"></span>
+    <span style="width:44px"></span>
+  </div>
+  <div class="flow-dots" id="flowDots"></div>
+  <div class="flow-mid" id="flowMid"></div>
+  <div class="flow-bottom">
+    <button class="flow-btn" id="flowBtn"></button>
+    <button class="flow-sub" id="flowSub" hidden></button>
+  </div>
+</div>
+
 <!-- Main Content View -->
 <div id="mainView">
   <button class="add-btn" onclick="openModal()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Thêm bài đăng mới
   </button>
+  <div class="search-wrap" id="searchWrap" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="search-input" id="searchInput" type="search" placeholder="Tìm bài đăng..." oninput="renderPosts()">
+  </div>
   <div id="draftBanner" hidden></div>
   <div class="posts" id="postsContainer"></div>
 </div>
@@ -888,6 +949,120 @@ async function runDiagnostic() {
   alert('📱 KHẢ NĂNG CỦA MÁY BẠN\n\n' + r.join('\n') + '\n\n💡 Nếu "Trong iframe: CÓ" → hãy mở app này bằng Chrome trực tiếp để dùng được đầy đủ.');
 }
 
+// ═══════════ CHẾ ĐỘ ĐĂNG BÀI ═══════════
+let flow = null; // { postId, steps:[{type,src?}], pos, lastOk }
+
+function openFlow(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+
+  const steps = [];
+  if (post.content) steps.push({ type: 'text' });
+  (post.images || []).forEach(src => steps.push({ type: 'image', src }));
+  if (!steps.length) return;
+
+  flow = { postId: id, steps, pos: 0, lastOk: null };
+  document.getElementById('flowView').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderFlow();
+}
+
+function closeFlow() {
+  flow = null;
+  document.getElementById('flowView').hidden = true;
+  document.body.style.overflow = '';
+}
+
+function renderFlow() {
+  if (!flow) return;
+  const { steps, pos, lastOk } = flow;
+  const total = steps.length;
+  const finished = pos >= total;
+
+  // Step counter
+  document.getElementById('flowStep').textContent = finished ? 'Hoàn tất' : `Bước ${pos + 1}/${total}`;
+
+  // Dots
+  document.getElementById('flowDots').innerHTML = steps.map((s, i) =>
+    `<div class="flow-dot ${i < pos ? 'done' : i === pos ? 'now' : ''}"></div>`).join('');
+
+  const mid = document.getElementById('flowMid');
+  const btn = document.getElementById('flowBtn');
+  const sub = document.getElementById('flowSub');
+  btn.className = 'flow-btn';
+  sub.hidden = true;
+
+  if (finished) {
+    mid.innerHTML = `<div style="font-size:64px">✅</div>
+      <div class="flow-status">Đã copy xong ${total} mục!</div>
+      <div class="flow-hint">Dán mục cuối vào Zalo là xong.</div>`;
+    btn.textContent = 'Đóng';
+    btn.className = 'flow-btn done-state';
+    btn.onclick = closeFlow;
+    return;
+  }
+
+  const step = steps[pos];
+  const isText = step.type === 'text';
+  const imgNo = steps.slice(0, pos + 1).filter(s => s.type === 'image').length;
+  const imgTotal = steps.filter(s => s.type === 'image').length;
+
+  // Preview
+  const post = posts.find(p => p.id === flow.postId);
+  const preview = isText
+    ? `<div class="flow-textbox">${esc(post.content)}</div>`
+    : `<img class="flow-preview" src="${step.src}" alt="">`;
+
+  // Status line from previous action
+  let statusHtml = '';
+  if (lastOk === true) {
+    statusHtml = `<div class="flow-status" style="color:var(--accent)">✓ Đã copy — dán vào Zalo</div>
+                  <div class="flow-hint">Dán xong, quay lại nhấn nút bên dưới</div>`;
+  } else if (lastOk === false) {
+    statusHtml = `<div class="flow-status" style="color:var(--danger)">Safari chặn copy ảnh này</div>
+                  <div class="flow-hint">Nhấn giữ vào ảnh ở trên → <b>Sao chép</b></div>`;
+  } else {
+    statusHtml = `<div class="flow-hint">${isText ? 'Nội dung bài đăng' : `Ảnh ${imgNo}/${imgTotal}`}</div>`;
+  }
+
+  mid.innerHTML = preview + statusHtml;
+
+  btn.textContent = isText ? '📋 Copy nội dung' : `📷 Copy ảnh ${imgNo}/${imgTotal}`;
+  btn.onclick = () => flowCopy();
+
+  // Skip button
+  if (pos < total - 1) {
+    sub.hidden = false;
+    sub.textContent = 'Bỏ qua →';
+    sub.onclick = () => { flow.pos++; flow.lastOk = null; renderFlow(); };
+  }
+}
+
+// Copy bước hiện tại — gọi TRỰC TIẾP từ cú chạm (bắt buộc cho Safari)
+function flowCopy() {
+  if (!flow) return;
+  const step = flow.steps[flow.pos];
+  const post = posts.find(p => p.id === flow.postId);
+  if (!post) return;
+
+  const advance = ok => { flow.pos++; flow.lastOk = ok; renderFlow(); };
+
+  if (step.type === 'text') {
+    navigator.clipboard.writeText(post.content)
+      .then(() => advance(true))
+      .catch(() => { legacyCopyText(post.content); advance(true); });
+    return;
+  }
+
+  if (!navigator.clipboard || !window.ClipboardItem) { advance(false); return; }
+
+  const item = new ClipboardItem({ 'image/png': toPngBlobPromise(step.src) });
+  navigator.clipboard.write([item])
+    .then(() => advance(true))
+    .catch(() => { flow.lastOk = false; renderFlow(); });
+}
+
 // Image selection state
 const imgSelection = {}; // { postId: Set of indices }
 
@@ -1303,11 +1478,27 @@ function formatDate(iso) {
 function renderPosts() {
   const c = document.getElementById('postsContainer');
   document.getElementById('postCount').textContent = posts.length + ' bài đăng';
+
+  // Hiện ô tìm kiếm khi có từ 4 bài trở lên
+  const sw = document.getElementById('searchWrap');
+  if (sw) sw.hidden = posts.length < 4;
+
   if (!posts.length) {
     c.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><h3>Chưa có bài đăng nào</h3><p>Nhấn "Thêm bài đăng mới" để bắt đầu</p></div>';
     return;
   }
-  c.innerHTML = posts.map(post => {
+
+  // Lọc theo từ khoá
+  const si = document.getElementById('searchInput');
+  const q = (si && !sw.hidden ? si.value : '').trim().toLowerCase();
+  const list = q ? posts.filter(p => (p.content || '').toLowerCase().includes(q)) : posts;
+
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Không tìm thấy</h3><p>Thử từ khoá khác</p></div>';
+    return;
+  }
+
+  c.innerHTML = list.map(post => {
     const images = post.images || [];
     const showCount = Math.min(images.length, 4);
     const countClass = 'count-' + Math.min(showCount, 4);
@@ -1345,9 +1536,9 @@ function renderPosts() {
           <div class="compact-meta">${metaParts}</div>
         </div>
         <div class="compact-actions">
-          <button class="compact-copy" onclick="sendToZalo('${post.id}', event)" title="Gửi ảnh + nội dung sang Zalo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-            Gửi
+          <button class="compact-copy" onclick="openFlow('${post.id}', event)" title="Đăng bài này">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+            Đăng
           </button>
           <button class="compact-expand" title="Mở rộng">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
