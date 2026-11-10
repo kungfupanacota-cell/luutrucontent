@@ -165,8 +165,13 @@
   .flow-btn:active { transform: scale(0.97); background: var(--accent-hover); }
   .flow-btn.done-state { background: var(--surface-alt); color: var(--fg); }
   .flow-btn.err-state { background: var(--danger); }
-  .flow-sub { width: 100%; margin-top: 10px; padding: 14px; border: 1px solid var(--border); border-radius: 14px;
-    background: var(--surface); color: var(--fg-secondary); font-size: 15px; font-family: var(--font-body); cursor: pointer; }
+  .flow-sub { width: 100%; margin-top: 10px; padding: 16px; border: 1px solid var(--border); border-radius: 14px;
+    background: var(--surface); color: var(--fg); font-size: 16px; font-weight:600; font-family: var(--font-body);
+    cursor: pointer; min-height:54px; -webkit-tap-highlight-color:transparent; }
+  .flow-sub:active { background: var(--surface-hover); }
+  .flow-bar { padding: 14px; border-radius: 14px; margin-bottom: 12px; font-size: 15px; line-height: 1.5; }
+  .flow-bar.ok { background: var(--accent-light); color: var(--fg); border: 1px solid var(--accent); }
+  .flow-bar.warn { background: var(--warning-light); color: var(--fg); border: 1px solid var(--warning); }
 
   /* ── Add Button ── */
   .add-btn {
@@ -539,6 +544,7 @@
   <div class="flow-dots" id="flowDots"></div>
   <div class="flow-mid" id="flowMid"></div>
   <div class="flow-bottom">
+    <div class="flow-bar" id="flowBar" hidden></div>
     <button class="flow-btn" id="flowBtn"></button>
     <button class="flow-sub" id="flowSub" hidden></button>
   </div>
@@ -894,15 +900,18 @@ function dataUrlToFile(dataUrl, name) {
   return new File([blob], name, { type: blob.type });
 }
 
-// Copy text ĐỒNG BỘ - hoạt động trên Safari iOS, không tiêu tốn user-activation
+// Copy text ĐỒNG BỘ — chạy được trên Safari iOS, không tiêu tốn user-activation của share()
+// LƯU Ý: KHÔNG dùng opacity:0 / display:none — trình duyệt từ chối copy từ phần tử ẩn
 function legacyCopyText(text) {
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.readOnly = false;
   ta.contentEditable = 'true';
-  // font-size 16px để Safari không tự zoom; đặt trong màn hình nhưng vô hình
-  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;opacity:0;font-size:16px;';
+  ta.readOnly = true; // chặn bàn phím iOS bật lên
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:100px;height:40px;padding:0;' +
+                     'border:none;outline:none;background:transparent;color:transparent;' +
+                     'font-size:16px;z-index:-1;';
   document.body.appendChild(ta);
+  let ok = false;
   try {
     const range = document.createRange();
     range.selectNodeContents(ta);
@@ -910,14 +919,22 @@ function legacyCopyText(text) {
     sel.removeAllRanges();
     sel.addRange(range);
     ta.setSelectionRange(0, 999999);
-    const ok = document.execCommand('copy');
+    ok = document.execCommand('copy');
     sel.removeAllRanges();
-    return ok;
-  } catch (e) {
-    return false;
-  } finally {
-    document.body.removeChild(ta);
+  } catch (e) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+
+// Copy nội dung với 2 lớp: đồng bộ trước, async dự phòng. Không await → giữ user-activation
+function copyTextDual(text, onAsyncDone) {
+  const ok = legacyCopyText(text);
+  if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => { if (onAsyncDone) onAsyncDone(true); })
+      .catch(() => { if (onAsyncDone) onAsyncDone(false); });
   }
+  return ok;
 }
 
 // Downloads capability (artifact API)
@@ -1017,7 +1034,7 @@ function openFlow(id, e) {
   if (!post) return;
 
   const imgs = post.images || [];
-  flow = { postId: id, picked: new Set(imgs.map((_, i) => i)), textOn: !!post.content };
+  flow = { postId: id, picked: new Set(imgs.map((_, i) => i)), textOn: !!post.content, shared: false, copied: false };
   document.getElementById('flowView').hidden = false;
   document.body.style.overflow = 'hidden';
   renderFlow();
@@ -1090,53 +1107,79 @@ function renderFlow() {
 
   const btn = document.getElementById('flowBtn');
   const sub = document.getElementById('flowSub');
+  const withText = flow.textOn && !!post.content;
+
   btn.className = 'flow-btn';
   btn.disabled = (n === 0 && !flow.textOn);
   btn.style.opacity = btn.disabled ? '.4' : '1';
-  const withText = flow.textOn && post.content;
-  btn.innerHTML = n
-    ? `📤 Đăng ${n} ảnh lên Zalo${withText ? '<br><span style="font-size:13px;font-weight:500;opacity:.85">+ nội dung sẽ được copy sẵn để dán</span>' : ''}`
-    : '📋 Copy nội dung';
-  btn.onclick = flowShare;
 
+  // Sau khi đã chia sẻ xong: nhắc dán nội dung
+  const bar = document.getElementById('flowBar');
+  if (flow.shared && withText) {
+    bar.hidden = false;
+    bar.className = 'flow-bar ' + (flow.copied ? 'ok' : 'warn');
+    bar.innerHTML = flow.copied
+      ? `✅ <b>Nội dung đã copy</b> — trên Zalo chọn <b>Nhật ký</b>, rồi <b>nhấn giữ ô mô tả → Dán</b>`
+      : `⚠️ Chưa copy được nội dung — nhấn nút dưới để copy lại`;
+  } else {
+    bar.hidden = true;
+  }
+
+  if (!n) {
+    btn.innerHTML = '📋 Copy nội dung';
+    btn.onclick = () => flowShare('feed');
+    sub.hidden = true;
+    return;
+  }
+
+  // Nút chính: đăng Nhật ký (ảnh riêng, text vào clipboard)
+  btn.innerHTML = `📤 Đăng ${n} ảnh lên Nhật ký` +
+    (withText ? `<br><span style="font-size:13px;font-weight:500;opacity:.85">nội dung copy sẵn để dán vào mô tả</span>` : '');
+  btn.onclick = () => flowShare('feed');
+
+  // Nút phụ
   sub.hidden = false;
-  sub.textContent = '📋 Hoặc copy từng mục (cách cũ)';
-  sub.onclick = () => {
-    const pid = post.id;
-    closeFlow();
-    const card = document.querySelector(`[data-id="${pid}"]`);
-    if (card) { card.classList.add('expanded'); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-  };
+  if (flow.shared && withText && !flow.copied) {
+    sub.textContent = '📋 Copy lại nội dung';
+    sub.onclick = flowCopyTextOnly;
+  } else if (withText) {
+    sub.innerHTML = '💬 Gửi vào tin nhắn <span style="opacity:.7">(kèm sẵn nội dung)</span>';
+    sub.onclick = () => flowShare('chat');
+  } else {
+    sub.hidden = true;
+  }
 }
 
-// CHIA SẺ — 1 chạm: copy nội dung + chia sẻ ảnh
-// Zalo không nhận files+text cùng lúc, nên: text vào clipboard, ảnh qua bảng chia sẻ
-function flowShare() {
+// CHIA SẺ
+// mode 'feed'  : đăng Nhật ký → CHỈ gửi ảnh, text vào clipboard (kèm text sẽ lỗi Nhật ký)
+// mode 'chat'  : gửi tin nhắn → gửi ảnh + text cùng lúc (Zalo chat nhận được)
+function flowShare(mode) {
   if (!flow) return;
   const post = posts.find(p => p.id === flow.postId);
   if (!post) return;
 
   const wantText = flow.textOn && !!post.content;
-
-  // ── BƯỚC 1: copy nội dung ĐỒNG BỘ (không await, không mất user-activation) ──
-  let textCopied = false;
-  if (wantText) textCopied = legacyCopyText(post.content);
-
   const idxs = [...flow.picked].sort((a, b) => a - b);
 
-  // Không có ảnh → chỉ copy text
+  // ── Chỉ có nội dung, không ảnh ──
   if (!idxs.length) {
-    if (textCopied) { closeFlow(); showToast('✅ Đã copy nội dung — dán vào Zalo', 3000); }
-    else showToast('❌ Không copy được nội dung', 3000);
+    if (!wantText) return;
+    const ok = copyTextDual(post.content, a => { if (flow) { flow.copied = a; renderFlow(); }
+      showToast(a ? '✅ Đã copy nội dung — dán vào Zalo' : '❌ Không copy được', 3000); });
+    if (ok) { flow.copied = true; renderFlow(); showToast('✅ Đã copy nội dung — dán vào Zalo', 3000); }
     return;
   }
 
-  if (!navigator.share) {
-    showToast('⚠️ Trình duyệt không hỗ trợ chia sẻ', 3500);
-    return;
+  if (!navigator.share) { showToast('⚠️ Trình duyệt không hỗ trợ chia sẻ', 3500); return; }
+
+  // ── Đăng Nhật ký: copy text ĐỒNG BỘ trước (không làm mất user-activation) ──
+  let textCopied = false;
+  if (mode === 'feed' && wantText) {
+    textCopied = copyTextDual(post.content, ok => {
+      if (flow) { flow.copied = ok; renderFlow(); }
+    });
   }
 
-  // ── BƯỚC 2: tạo File đồng bộ rồi chia sẻ CHỈ ẢNH ──
   const files = idxs.map(i => {
     const src = post.images[i];
     const ext = src.includes('image/png') ? 'png' : 'jpg';
@@ -1144,28 +1187,45 @@ function flowShare() {
   });
 
   const data = { files };
+  if (mode === 'chat' && wantText) data.text = post.content;
 
   if (navigator.canShare && !navigator.canShare(data)) {
-    showToast('⚠️ Máy không chia sẻ được ảnh', 3500);
-    return;
+    // không kèm được text thì bỏ text ra
+    if (data.text) { delete data.text; if (wantText) textCopied = copyTextDual(post.content); }
+    if (navigator.canShare && !navigator.canShare(data)) {
+      showToast('⚠️ Máy không chia sẻ được ảnh', 3500); return;
+    }
   }
 
   navigator.share(data)
     .then(() => {
-      closeFlow();
-      if (wantText) {
-        showToast(textCopied
-          ? '✅ Đã gửi ảnh. Nội dung đã copy — dán vào ô mô tả trên Zalo'
-          : '✅ Đã gửi ảnh (nội dung chưa copy được)', 5000);
+      if (mode === 'feed' && wantText) {
+        flow.copied = textCopied;
+        flow.shared = true;
+        renderFlow();
+      } else {
+        closeFlow();
       }
     })
     .catch(err => {
       if (err.name === 'AbortError') {
-        if (textCopied) showToast('Nội dung vẫn đang ở clipboard', 2500);
+        if (textCopied) { flow.copied = true; renderFlow(); }
         return;
       }
       showToast('⚠️ ' + (err.message || err.name), 3500);
     });
+}
+
+// Copy lại nội dung (nút dự phòng)
+function flowCopyTextOnly() {
+  if (!flow) return;
+  const post = posts.find(p => p.id === flow.postId);
+  if (!post || !post.content) return;
+  const ok = copyTextDual(post.content, async2 => {
+    if (flow) { flow.copied = async2; renderFlow(); }
+    showToast(async2 ? '✅ Đã copy nội dung' : '❌ Không copy được', 2500);
+  });
+  if (ok) { flow.copied = true; renderFlow(); showToast('✅ Đã copy nội dung', 2500); }
 }
 
 // Image selection state
