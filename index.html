@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kho Content">
@@ -132,6 +135,15 @@
     border-radius: var(--radius); padding: 16px; text-align: left; font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
   .flow-status { font-size: 17px; font-weight: 600; color: var(--fg); }
   .flow-hint { font-size: 15px; color: var(--fg-secondary); line-height: 1.5; }
+
+  /* ── Thông báo bản mới ── */
+  .upd-banner { position: sticky; top: 0; z-index: 50; margin: 0 -14px 12px;
+    padding: 14px 16px; padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    background: var(--accent); color: #fff; font-size: 15px; line-height: 1.5;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .upd-banner button { margin-left: auto; background: #fff; color: var(--accent);
+    border: none; border-radius: 20px; padding: 10px 18px; font-size: 15px; font-weight: 700;
+    font-family: var(--font-body); cursor: pointer; min-height: 42px; }
 
   /* ── Nút quay lại ── */
   .back-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 15px 16px;
@@ -672,6 +684,19 @@
     <div class="settings-section">
       <div class="settings-section-header">
         <div>
+          <h3>🔄 Phiên bản</h3>
+          <p id="verLine">—</p>
+        </div>
+      </div>
+      <div class="ss-body">
+        <button class="st-btn st-main" onclick="checkUpdate(true)">Kiểm tra bản mới</button>
+        <p class="st-note">Nếu app trên Màn hình chính vẫn hiện bản cũ, bấm nút này. Dữ liệu không bị ảnh hưởng.</p>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
           <h3>💾 Dung lượng</h3>
           <p>Ảnh giữ nguyên chất lượng gốc</p>
         </div>
@@ -826,6 +851,49 @@ let editingId = null;
 let currentImages = []; // array of data URLs
 let lbImages = []; let lbIdx = 0;
 
+// ═══ Phiên bản & tự kiểm tra bản mới ═══
+const APP_VERSION = '2026.11.10-21';
+
+async function checkUpdate(manual) {
+  try {
+    const url = location.pathname + '?cb=' + Date.now();
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const txt = await r.text();
+    const m = txt.match(/APP_VERSION\s*=\s*'([^']+)'/);
+    if (!m) throw new Error('no version');
+
+    if (m[1] !== APP_VERSION) {
+      if (manual) {
+        if (confirm(`Có bản mới: ${m[1]}\n(đang dùng ${APP_VERSION})\n\nCập nhật ngay?\nDữ liệu của bạn không bị ảnh hưởng.`)) doUpdate();
+      } else {
+        showUpdateBanner(m[1]);
+      }
+    } else if (manual) {
+      showToast('✅ Đang dùng bản mới nhất (' + APP_VERSION + ')', 3000);
+    }
+  } catch (e) {
+    if (manual) showToast('⚠️ Không kiểm tra được: ' + e.message, 3000);
+  }
+}
+
+// Nạp lại trang, bỏ qua cache của iOS
+function doUpdate() {
+  location.replace(location.pathname + '?v=' + Date.now());
+}
+
+function showUpdateBanner(ver) {
+  let el = document.getElementById('updBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'updBanner';
+    el.className = 'upd-banner';
+    document.body.insertBefore(el, document.body.firstChild);
+  }
+  el.innerHTML = `🎉 <b>Có bản mới ${ver}</b> — dữ liệu của bạn giữ nguyên
+    <button onclick="doUpdate()">Cập nhật</button>`;
+}
+
 // ═══ Lưu trữ: IndexedDB (dung lượng lớn), tự chuyển từ localStorage ═══
 const DB_NAME = 'cv-db', DB_STORE = 'kv';
 let _db = null;
@@ -978,6 +1046,8 @@ function switchSettingsTab(tab, el) {
 
 // ═══ Bộ nhớ ═══
 async function renderStorage() {
+  const vl = document.getElementById('verLine');
+  if (vl) vl.textContent = 'Đang dùng bản ' + APP_VERSION;
   const el = document.getElementById('stMeter');
   el.innerHTML = '<div class="st-note">Đang kiểm tra...</div>';
   const i = await storageInfo();
@@ -1527,7 +1597,9 @@ function clearOldMarks() {
 }
 // Kiểm tra lại khi quay lại app (phòng khi qua nửa đêm)
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && clearOldMarks()) renderPosts();
+  if (document.hidden) return;
+  if (clearOldMarks()) renderPosts();
+  checkUpdate(false);          // quay lại app thì kiểm tra bản mới luôn
 });
 
 // ═══════════ CHẾ ĐỘ ĐĂNG BÀI: chọn ảnh → chia sẻ ═══════════
@@ -2332,6 +2404,7 @@ document.getElementById('phraseModal').addEventListener('click', function(e) { i
   scanPhrases(true);  // true = không hiện thông báo khi mới mở app
   checkDraft();
   requestPersist();   // xin Safari giữ dữ liệu, không tự xoá
+  setTimeout(() => checkUpdate(false), 1500);   // âm thầm kiểm tra bản mới
 })();
 </script>
 
