@@ -107,12 +107,36 @@
   .flow-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: all .2s; }
   .flow-dot.done { background: var(--accent); }
   .flow-dot.now { background: var(--warning); transform: scale(1.5); }
-  .flow-mid { flex: 1; overflow-y: auto; padding: 0 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; }
+  .flow-mid { flex: 1; overflow-y: auto; padding: 0 16px 16px; }
   .flow-preview { max-width: 100%; max-height: 38vh; border-radius: var(--radius); box-shadow: var(--shadow-lg); }
   .flow-textbox { width: 100%; max-height: 38vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 16px; text-align: left; font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
   .flow-status { font-size: 17px; font-weight: 600; color: var(--fg); }
   .flow-hint { font-size: 15px; color: var(--fg-secondary); line-height: 1.5; }
+
+  /* ── Chọn ảnh để chia sẻ ── */
+  .pick-head { display:flex; align-items:center; justify-content:space-between; padding: 14px 2px 10px; }
+  .pick-head h3 { margin:0; font-size:16px; font-family:var(--font-display); }
+  .pick-all { background:var(--surface-alt); border:1px solid var(--border); color:var(--fg);
+    border-radius:20px; padding:10px 16px; font-size:14px; font-family:var(--font-body); cursor:pointer; min-height:42px; }
+  .pick-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; }
+  .pick-item { position:relative; aspect-ratio:1; border-radius:14px; overflow:hidden;
+    border:3px solid var(--border); cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .15s; }
+  .pick-item.on { border-color:var(--accent); }
+  .pick-item img { width:100%; height:100%; object-fit:cover; display:block; }
+  .pick-item:active { transform:scale(0.97); }
+  .pick-tick { position:absolute; top:8px; left:8px; width:30px; height:30px; border-radius:50%;
+    background:rgba(0,0,0,.45); border:2px solid #fff; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:17px; font-weight:700; }
+  .pick-item.on .pick-tick { background:var(--accent); border-color:var(--accent); }
+  .pick-no { position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.6); color:#fff;
+    font-size:12px; padding:3px 8px; border-radius:8px; }
+  .pick-text { margin-top:16px; background:var(--surface); border:3px solid var(--border);
+    border-radius:14px; padding:14px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pick-text.on { border-color:var(--accent); }
+  .pick-text-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .pick-text-body { font-size:14px; line-height:1.5; color:var(--fg-secondary); white-space:pre-wrap;
+    max-height:120px; overflow:hidden; }
   .flow-bottom { padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); }
   .flow-btn {
     width: 100%; padding: 20px; border: none; border-radius: 16px; background: var(--accent); color: #fff;
@@ -949,20 +973,16 @@ async function runDiagnostic() {
   alert('📱 KHẢ NĂNG CỦA MÁY BẠN\n\n' + r.join('\n') + '\n\n💡 Nếu "Trong iframe: CÓ" → hãy mở app này bằng Chrome trực tiếp để dùng được đầy đủ.');
 }
 
-// ═══════════ CHẾ ĐỘ ĐĂNG BÀI ═══════════
-let flow = null; // { postId, steps:[{type,src?}], pos, lastOk }
+// ═══════════ CHẾ ĐỘ ĐĂNG BÀI: chọn ảnh → chia sẻ ═══════════
+let flow = null; // { postId, picked:Set, textOn:bool }
 
 function openFlow(id, e) {
   if (e) e.stopPropagation();
   const post = posts.find(p => p.id === id);
   if (!post) return;
 
-  const steps = [];
-  if (post.content) steps.push({ type: 'text' });
-  (post.images || []).forEach(src => steps.push({ type: 'image', src }));
-  if (!steps.length) return;
-
-  flow = { postId: id, steps, pos: 0, lastOk: null };
+  const imgs = post.images || [];
+  flow = { postId: id, picked: new Set(imgs.map((_, i) => i)), textOn: !!post.content };
   document.getElementById('flowView').hidden = false;
   document.body.style.overflow = 'hidden';
   renderFlow();
@@ -974,93 +994,128 @@ function closeFlow() {
   document.body.style.overflow = '';
 }
 
+function flowToggleImg(i) {
+  if (!flow) return;
+  if (flow.picked.has(i)) flow.picked.delete(i); else flow.picked.add(i);
+  renderFlow();
+}
+
+function flowToggleText() {
+  if (!flow) return;
+  flow.textOn = !flow.textOn;
+  renderFlow();
+}
+
+function flowToggleAll() {
+  if (!flow) return;
+  const post = posts.find(p => p.id === flow.postId);
+  const imgs = post.images || [];
+  if (flow.picked.size === imgs.length) flow.picked.clear();
+  else imgs.forEach((_, i) => flow.picked.add(i));
+  renderFlow();
+}
+
 function renderFlow() {
   if (!flow) return;
-  const { steps, pos, lastOk } = flow;
-  const total = steps.length;
-  const finished = pos >= total;
+  const post = posts.find(p => p.id === flow.postId);
+  if (!post) return closeFlow();
 
-  // Step counter
-  document.getElementById('flowStep').textContent = finished ? 'Hoàn tất' : `Bước ${pos + 1}/${total}`;
+  const imgs = post.images || [];
+  const n = flow.picked.size;
 
-  // Dots
-  document.getElementById('flowDots').innerHTML = steps.map((s, i) =>
-    `<div class="flow-dot ${i < pos ? 'done' : i === pos ? 'now' : ''}"></div>`).join('');
+  document.getElementById('flowStep').textContent = `${n} ảnh đã chọn`;
+  document.getElementById('flowDots').innerHTML = '';
 
-  const mid = document.getElementById('flowMid');
+  let html = '';
+
+  if (imgs.length) {
+    html += `<div class="pick-head">
+      <h3>Chọn ảnh để đăng</h3>
+      <button class="pick-all" onclick="flowToggleAll()">${n === imgs.length ? 'Bỏ chọn' : 'Chọn tất cả'}</button>
+    </div>
+    <div class="pick-grid">` +
+      imgs.map((src, i) => `<div class="pick-item ${flow.picked.has(i) ? 'on' : ''}" onclick="flowToggleImg(${i})">
+        <div class="pick-tick">${flow.picked.has(i) ? '✓' : ''}</div>
+        <img src="${src}" alt="" loading="lazy">
+        ${i === 0 ? '<span class="pick-no">Chủ đạo</span>' : ''}
+      </div>`).join('') + `</div>`;
+  }
+
+  if (post.content) {
+    html += `<div class="pick-text ${flow.textOn ? 'on' : ''}" onclick="flowToggleText()">
+      <div class="pick-text-head">
+        <div class="pick-tick" style="position:static;width:26px;height:26px;font-size:15px;${flow.textOn ? 'background:var(--accent);border-color:var(--accent)' : ''}">${flow.textOn ? '✓' : ''}</div>
+        <b style="font-size:15px">Kèm nội dung</b>
+      </div>
+      <div class="pick-text-body">${esc(post.content)}</div>
+    </div>`;
+  }
+
+  document.getElementById('flowMid').innerHTML = html;
+
   const btn = document.getElementById('flowBtn');
   const sub = document.getElementById('flowSub');
   btn.className = 'flow-btn';
-  sub.hidden = true;
+  btn.disabled = (n === 0 && !flow.textOn);
+  btn.style.opacity = btn.disabled ? '.4' : '1';
+  btn.textContent = n ? `📤 Chia sẻ ${n} ảnh lên Zalo` : '📤 Chia sẻ nội dung';
+  btn.onclick = flowShare;
 
-  if (finished) {
-    mid.innerHTML = `<div style="font-size:64px">✅</div>
-      <div class="flow-status">Đã copy xong ${total} mục!</div>
-      <div class="flow-hint">Dán mục cuối vào Zalo là xong.</div>`;
-    btn.textContent = 'Đóng';
-    btn.className = 'flow-btn done-state';
-    btn.onclick = closeFlow;
-    return;
-  }
-
-  const step = steps[pos];
-  const isText = step.type === 'text';
-  const imgNo = steps.slice(0, pos + 1).filter(s => s.type === 'image').length;
-  const imgTotal = steps.filter(s => s.type === 'image').length;
-
-  // Preview
-  const post = posts.find(p => p.id === flow.postId);
-  const preview = isText
-    ? `<div class="flow-textbox">${esc(post.content)}</div>`
-    : `<img class="flow-preview" src="${step.src}" alt="">`;
-
-  // Status line from previous action
-  let statusHtml = '';
-  if (lastOk === true) {
-    statusHtml = `<div class="flow-status" style="color:var(--accent)">✓ Đã copy — dán vào Zalo</div>
-                  <div class="flow-hint">Dán xong, quay lại nhấn nút bên dưới</div>`;
-  } else if (lastOk === false) {
-    statusHtml = `<div class="flow-status" style="color:var(--danger)">Safari chặn copy ảnh này</div>
-                  <div class="flow-hint">Nhấn giữ vào ảnh ở trên → <b>Sao chép</b></div>`;
-  } else {
-    statusHtml = `<div class="flow-hint">${isText ? 'Nội dung bài đăng' : `Ảnh ${imgNo}/${imgTotal}`}</div>`;
-  }
-
-  mid.innerHTML = preview + statusHtml;
-
-  btn.textContent = isText ? '📋 Copy nội dung' : `📷 Copy ảnh ${imgNo}/${imgTotal}`;
-  btn.onclick = () => flowCopy();
-
-  // Skip button
-  if (pos < total - 1) {
-    sub.hidden = false;
-    sub.textContent = 'Bỏ qua →';
-    sub.onclick = () => { flow.pos++; flow.lastOk = null; renderFlow(); };
-  }
+  sub.hidden = false;
+  sub.textContent = '📋 Hoặc copy từng mục (cách cũ)';
+  sub.onclick = () => {
+    const pid = post.id;
+    closeFlow();
+    const card = document.querySelector(`[data-id="${pid}"]`);
+    if (card) { card.classList.add('expanded'); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  };
 }
 
-// Copy bước hiện tại — gọi TRỰC TIẾP từ cú chạm (bắt buộc cho Safari)
-function flowCopy() {
+// CHIA SẺ — gọi TRỰC TIẾP trong cú chạm (bắt buộc cho Safari iOS)
+function flowShare() {
   if (!flow) return;
-  const step = flow.steps[flow.pos];
   const post = posts.find(p => p.id === flow.postId);
   if (!post) return;
 
-  const advance = ok => { flow.pos++; flow.lastOk = ok; renderFlow(); };
+  const idxs = [...flow.picked].sort((a, b) => a - b);
 
-  if (step.type === 'text') {
-    navigator.clipboard.writeText(post.content)
-      .then(() => advance(true))
-      .catch(() => { legacyCopyText(post.content); advance(true); });
+  // Tạo File đồng bộ (atob là sync) — không await trước navigator.share
+  const files = idxs.map(i => {
+    const src = post.images[i];
+    const ext = src.includes('image/png') ? 'png' : 'jpg';
+    return dataUrlToFile(src, `anh_${i + 1}.${ext}`);
+  });
+
+  if (!navigator.share) {
+    showToast('⚠️ Trình duyệt không hỗ trợ chia sẻ. Dùng nút copy bên dưới.', 3500);
     return;
   }
 
-  if (!navigator.clipboard || !window.ClipboardItem) { advance(false); return; }
+  const data = {};
+  if (files.length) data.files = files;
+  if (flow.textOn && post.content) data.text = post.content;
 
-  const item = new ClipboardItem({ 'image/png': toPngBlobPromise(step.src) });
-  navigator.clipboard.write([item])
-    .then(() => advance(true))
-    .catch(() => { flow.lastOk = false; renderFlow(); });
+  // Nếu không chia sẻ được file thì chỉ gửi text
+  const payload = (navigator.canShare && !navigator.canShare(data))
+    ? (post.content && flow.textOn ? { text: post.content } : null)
+    : data;
+
+  if (!payload) {
+    showToast('⚠️ Máy không chia sẻ được ảnh. Dùng nút copy bên dưới.', 3500);
+    return;
+  }
+
+  const droppedFiles = payload !== data;
+
+  navigator.share(payload)
+    .then(() => {
+      closeFlow();
+      if (droppedFiles) showToast('Đã chia sẻ nội dung (máy không gửi được ảnh)', 3500);
+    })
+    .catch(err => {
+      if (err.name === 'AbortError') return;
+      showToast('⚠️ ' + (err.message || err.name), 3500);
+    });
 }
 
 // Image selection state
