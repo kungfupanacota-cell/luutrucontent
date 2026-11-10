@@ -1,5 +1,19 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kho Content">
+<meta name="theme-color" content="#2D7A5F" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121210" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%232D7A5F%22/><text y=%22.9em%22 x=%2250%22 text-anchor=%22middle%22 font-size=%2258%22>📋</text></svg>">
+<style>html,body{margin:0;padding:0}body{overscroll-behavior-y:contain}</style>
+</head>
+<body>
 <title>Kho Lưu Trữ Content</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
   :root {
@@ -48,27 +62,32 @@
     --shadow: 0 1px 3px rgba(0,0,0,0.2); --shadow-lg: 0 4px 12px rgba(0,0,0,0.3);
     color-scheme: dark;
   }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     background: var(--bg); color: var(--fg); font-family: var(--font-body);
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
-    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    font-size: 17px; line-height: 1.5;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
     padding-block: 0; max-width: 800px; margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
   }
   * { box-sizing: border-box; }
+  /* iOS: input >=16px để Safari không tự phóng to khi gõ */
+  input, textarea, select, button { font-size: 16px; }
 
   /* ── Header ── */
-  .header { padding: 28px 0 20px; display: flex; align-items: center; justify-content: space-between; }
-  .header-left h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
-  .header-left p { color: var(--fg-secondary); font-size: 0.8125rem; margin: 4px 0 0; }
+  .header { padding: 18px 0 16px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+  .header-left p { color: var(--fg-secondary); font-size: 14px; margin: 3px 0 0; }
   .header-right { display: flex; gap: 8px; }
   .icon-btn {
-    width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    width: 46px; height: 46px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--surface); color: var(--fg-secondary); cursor: pointer;
     display: flex; align-items: center; justify-content: center; transition: all 0.15s; position: relative;
   }
   .icon-btn:hover { background: var(--surface-hover); color: var(--fg); }
   .icon-btn.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
-  .icon-btn svg { width: 20px; height: 20px; }
+  .icon-btn svg { width: 23px; height: 23px; }
 
   .badge {
     position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff;
@@ -119,18 +138,18 @@
   .pick-head h3 { margin:0; font-size:16px; font-family:var(--font-display); }
   .pick-all { background:var(--surface-alt); border:1px solid var(--border); color:var(--fg);
     border-radius:20px; padding:10px 16px; font-size:14px; font-family:var(--font-body); cursor:pointer; min-height:42px; }
-  .pick-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; }
+  .pick-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
   .pick-item { position:relative; aspect-ratio:1; border-radius:14px; overflow:hidden;
     border:3px solid var(--border); cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .15s; }
   .pick-item.on { border-color:var(--accent); }
   .pick-item img { width:100%; height:100%; object-fit:cover; display:block; }
   .pick-item:active { transform:scale(0.97); }
-  .pick-tick { position:absolute; top:8px; left:8px; width:30px; height:30px; border-radius:50%;
+  .pick-tick { position:absolute; top:5px; left:5px; width:26px; height:26px; border-radius:50%;
     background:rgba(0,0,0,.45); border:2px solid #fff; display:flex; align-items:center; justify-content:center;
-    color:#fff; font-size:17px; font-weight:700; }
+    color:#fff; font-size:15px; font-weight:700; }
   .pick-item.on .pick-tick { background:var(--accent); border-color:var(--accent); }
-  .pick-no { position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,.6); color:#fff;
-    font-size:12px; padding:3px 8px; border-radius:8px; }
+  .pick-no { position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,.6); color:#fff;
+    font-size:10px; padding:2px 6px; border-radius:6px; }
   .pick-text { margin-top:16px; background:var(--surface); border:3px solid var(--border);
     border-radius:14px; padding:14px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   .pick-text.on { border-color:var(--accent); }
@@ -152,12 +171,13 @@
   /* ── Add Button ── */
   .add-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
-    padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius);
-    font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; cursor: pointer;
-    transition: background 0.15s; margin-bottom: 20px;
+    padding: 18px; background: var(--accent); color: #fff; border: none; border-radius: 14px;
+    font-family: var(--font-body); font-size: 17px; font-weight: 700; cursor: pointer;
+    transition: transform .1s, background 0.15s; margin-bottom: 16px; min-height: 58px;
+    -webkit-tap-highlight-color: transparent;
   }
-  .add-btn:hover { background: var(--accent-hover); }
-  .add-btn svg { width: 20px; height: 20px; }
+  .add-btn:active { transform: scale(0.98); background: var(--accent-hover); }
+  .add-btn svg { width: 22px; height: 22px; }
 
   /* ── Modal ── */
   .modal-overlay {
@@ -874,15 +894,30 @@ function dataUrlToFile(dataUrl, name) {
   return new File([blob], name, { type: blob.type });
 }
 
+// Copy text ĐỒNG BỘ - hoạt động trên Safari iOS, không tiêu tốn user-activation
 function legacyCopyText(text) {
   const ta = document.createElement('textarea');
   ta.value = text;
-  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+  ta.readOnly = false;
+  ta.contentEditable = 'true';
+  // font-size 16px để Safari không tự zoom; đặt trong màn hình nhưng vô hình
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:none;opacity:0;font-size:16px;';
   document.body.appendChild(ta);
-  ta.focus(); ta.select();
-  const ok = document.execCommand('copy');
-  document.body.removeChild(ta);
-  return ok;
+  try {
+    const range = document.createRange();
+    range.selectNodeContents(ta);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    ta.setSelectionRange(0, 999999);
+    const ok = document.execCommand('copy');
+    sel.removeAllRanges();
+    return ok;
+  } catch (e) {
+    return false;
+  } finally {
+    document.body.removeChild(ta);
+  }
 }
 
 // Downloads capability (artifact API)
@@ -1058,7 +1093,10 @@ function renderFlow() {
   btn.className = 'flow-btn';
   btn.disabled = (n === 0 && !flow.textOn);
   btn.style.opacity = btn.disabled ? '.4' : '1';
-  btn.textContent = n ? `📤 Chia sẻ ${n} ảnh lên Zalo` : '📤 Chia sẻ nội dung';
+  const withText = flow.textOn && post.content;
+  btn.innerHTML = n
+    ? `📤 Đăng ${n} ảnh lên Zalo${withText ? '<br><span style="font-size:13px;font-weight:500;opacity:.85">+ nội dung sẽ được copy sẵn để dán</span>' : ''}`
+    : '📋 Copy nội dung';
   btn.onclick = flowShare;
 
   sub.hidden = false;
@@ -1071,49 +1109,61 @@ function renderFlow() {
   };
 }
 
-// CHIA SẺ — gọi TRỰC TIẾP trong cú chạm (bắt buộc cho Safari iOS)
+// CHIA SẺ — 1 chạm: copy nội dung + chia sẻ ảnh
+// Zalo không nhận files+text cùng lúc, nên: text vào clipboard, ảnh qua bảng chia sẻ
 function flowShare() {
   if (!flow) return;
   const post = posts.find(p => p.id === flow.postId);
   if (!post) return;
 
+  const wantText = flow.textOn && !!post.content;
+
+  // ── BƯỚC 1: copy nội dung ĐỒNG BỘ (không await, không mất user-activation) ──
+  let textCopied = false;
+  if (wantText) textCopied = legacyCopyText(post.content);
+
   const idxs = [...flow.picked].sort((a, b) => a - b);
 
-  // Tạo File đồng bộ (atob là sync) — không await trước navigator.share
+  // Không có ảnh → chỉ copy text
+  if (!idxs.length) {
+    if (textCopied) { closeFlow(); showToast('✅ Đã copy nội dung — dán vào Zalo', 3000); }
+    else showToast('❌ Không copy được nội dung', 3000);
+    return;
+  }
+
+  if (!navigator.share) {
+    showToast('⚠️ Trình duyệt không hỗ trợ chia sẻ', 3500);
+    return;
+  }
+
+  // ── BƯỚC 2: tạo File đồng bộ rồi chia sẻ CHỈ ẢNH ──
   const files = idxs.map(i => {
     const src = post.images[i];
     const ext = src.includes('image/png') ? 'png' : 'jpg';
     return dataUrlToFile(src, `anh_${i + 1}.${ext}`);
   });
 
-  if (!navigator.share) {
-    showToast('⚠️ Trình duyệt không hỗ trợ chia sẻ. Dùng nút copy bên dưới.', 3500);
+  const data = { files };
+
+  if (navigator.canShare && !navigator.canShare(data)) {
+    showToast('⚠️ Máy không chia sẻ được ảnh', 3500);
     return;
   }
 
-  const data = {};
-  if (files.length) data.files = files;
-  if (flow.textOn && post.content) data.text = post.content;
-
-  // Nếu không chia sẻ được file thì chỉ gửi text
-  const payload = (navigator.canShare && !navigator.canShare(data))
-    ? (post.content && flow.textOn ? { text: post.content } : null)
-    : data;
-
-  if (!payload) {
-    showToast('⚠️ Máy không chia sẻ được ảnh. Dùng nút copy bên dưới.', 3500);
-    return;
-  }
-
-  const droppedFiles = payload !== data;
-
-  navigator.share(payload)
+  navigator.share(data)
     .then(() => {
       closeFlow();
-      if (droppedFiles) showToast('Đã chia sẻ nội dung (máy không gửi được ảnh)', 3500);
+      if (wantText) {
+        showToast(textCopied
+          ? '✅ Đã gửi ảnh. Nội dung đã copy — dán vào ô mô tả trên Zalo'
+          : '✅ Đã gửi ảnh (nội dung chưa copy được)', 5000);
+      }
     })
     .catch(err => {
-      if (err.name === 'AbortError') return;
+      if (err.name === 'AbortError') {
+        if (textCopied) showToast('Nội dung vẫn đang ở clipboard', 2500);
+        return;
+      }
       showToast('⚠️ ' + (err.message || err.name), 3500);
     });
 }
@@ -1680,3 +1730,6 @@ save();
 renderPosts();
 checkDraft();
 </script>
+
+</body>
+</html>
