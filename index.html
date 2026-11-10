@@ -1,4 +1,3 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Kho Lưu Trữ Content</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
@@ -435,6 +434,9 @@
     <p id="postCount">0 bài đăng</p>
   </div>
   <div class="header-right">
+    <button class="icon-btn" onclick="runDiagnostic()" title="Kiểm tra khả năng máy">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </button>
     <button class="icon-btn" id="settingsBtn" onclick="toggleView('settings')" title="Cài đặt đồng bộ">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
     </button>
@@ -808,6 +810,84 @@ async function getDownloads() {
   return _downloads;
 }
 
+// ═══ GỬI ZALO: 1 chạm - ảnh + text cùng lúc ═══
+async function sendToZalo(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  const images = post.images || [];
+  const content = post.content || '';
+  if (!images.length && !content) return;
+
+  // Tạo file từ ảnh
+  const files = images.map((src, i) => {
+    const ext = src.includes('image/png') ? 'png' : 'jpg';
+    return dataUrlToFile(src, `anh_${i + 1}.${ext}`);
+  });
+
+  // ── Web Share API: gửi cả ảnh + text ──
+  if (navigator.share) {
+    const data = {};
+    if (content) data.text = content;
+    if (files.length) data.files = files;
+
+    const canFiles = !navigator.canShare || navigator.canShare(data);
+    try {
+      await navigator.share(canFiles ? data : { text: content });
+      if (!canFiles && files.length) showToast('⚠️ Máy không gửi được ảnh qua chia sẻ', 3000);
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      showToast('⚠️ Chia sẻ bị chặn: ' + (err.message || err.name), 3000);
+    }
+  } else {
+    showToast('⚠️ Trình duyệt không có tính năng Chia sẻ', 3000);
+  }
+
+  // ── Dự phòng: copy text ──
+  if (content) {
+    try { await navigator.clipboard.writeText(content); showToast('Đã copy text (ảnh phải copy riêng)', 3000); }
+    catch (e2) { legacyCopyText(content); }
+  }
+}
+
+// ═══ Kiểm tra máy hỗ trợ gì ═══
+async function runDiagnostic() {
+  const r = [];
+  const inIframe = window.self !== window.top;
+  r.push(`Trong iframe: ${inIframe ? '⚠️ CÓ (bị hạn chế)' : '✅ KHÔNG'}`);
+  r.push(`HTTPS an toàn: ${window.isSecureContext ? '✅' : '❌'}`);
+  r.push(`navigator.share: ${navigator.share ? '✅ có' : '❌ không'}`);
+  r.push(`navigator.canShare: ${navigator.canShare ? '✅ có' : '❌ không'}`);
+
+  // Test share với file
+  if (navigator.canShare) {
+    try {
+      const f = new File([new Blob(['x'], {type:'image/png'})], 't.png', {type:'image/png'});
+      r.push(`Chia sẻ ẢNH: ${navigator.canShare({files:[f]}) ? '✅ ĐƯỢC' : '❌ không được'}`);
+    } catch(e) { r.push('Chia sẻ ẢNH: ❌ lỗi'); }
+  }
+
+  // Test clipboard text
+  try { await navigator.clipboard.writeText('test'); r.push('Copy TEXT: ✅ được'); }
+  catch(e) { r.push(`Copy TEXT: ❌ ${e.name}`); }
+
+  // Test clipboard image
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 2;
+    c.getContext('2d').fillRect(0,0,2,2);
+    const b = await new Promise(res => c.toBlob(res, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png': b})]);
+    r.push('Copy ẢNH: ✅ được');
+  } catch(e) { r.push(`Copy ẢNH: ❌ ${e.name}`); }
+
+  // Test downloads
+  const dl = await getDownloads();
+  r.push(`Tải file (Claude API): ${dl ? '✅ có' : '❌ không'}`);
+
+  alert('📱 KHẢ NĂNG CỦA MÁY BẠN\n\n' + r.join('\n') + '\n\n💡 Nếu "Trong iframe: CÓ" → hãy mở app này bằng Chrome trực tiếp để dùng được đầy đủ.');
+}
+
 // Image selection state
 const imgSelection = {}; // { postId: Set of indices }
 
@@ -851,81 +931,93 @@ function toggleSelectAll(id, e) {
   updateSelectUI(id);
 }
 
-// Copy selected images one by one with progress
-async function copySelectedImages(id, e) {
+// Hàng đợi copy nhiều ảnh — mỗi ảnh copy trong 1 cú chạm riêng (Safari yêu cầu)
+const copyQueue = {}; // { postId: {indices, pos} }
+
+function copySelectedImages(id, e) {
   if (e) e.stopPropagation();
   const post = posts.find(p => p.id === id);
   if (!post) return;
   const sel = getSelection(id);
   if (!sel.size) { showToast('Chọn ảnh trước khi copy'); return; }
 
-  const indices = [...sel].sort((a, b) => a - b);
+  copyQueue[id] = { indices: [...sel].sort((a, b) => a - b), pos: 0 };
+  copyQueueStep(id);
+}
+
+// Copy ảnh kế tiếp trong hàng đợi — gọi TRỰC TIẾP từ cú chạm, không async
+function copyQueueStep(id) {
+  const q = copyQueue[id];
+  const post = posts.find(p => p.id === id);
+  if (!q || !post) return;
+
   const progressEl = document.querySelector(`.copy-progress[data-post="${id}"]`);
   progressEl.classList.add('active');
 
-  for (let i = 0; i < indices.length; i++) {
-    const idx = indices[i];
-    progressEl.textContent = `Đang copy ảnh ${i+1}/${indices.length}... Dán vào Zalo rồi nhấn OK`;
+  const idx = q.indices[q.pos];
+  const total = q.indices.length;
+  const n = q.pos + 1;
 
-    try {
-      const src = post.images[idx];
-      const img = new Image(); img.crossOrigin = 'anonymous';
-      await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = src; });
+  const item = new ClipboardItem({ 'image/png': toPngBlobPromise(post.images[idx]) });
+
+  navigator.clipboard.write([item]).then(() => {
+    q.pos++;
+    if (q.pos < total) {
+      progressEl.innerHTML = `✅ Đã copy ảnh ${n}/${total} — <b>dán vào Zalo</b> rồi nhấn:<br>
+        <button onclick="copyQueueStep('${id}')" style="margin-top:8px;padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:15px;cursor:pointer;">▶ Copy ảnh ${n + 1}/${total}</button>`;
+    } else {
+      progressEl.innerHTML = `✅ Xong ${total} ảnh! Dán ảnh cuối vào Zalo.`;
+      setTimeout(() => {
+        progressEl.classList.remove('active');
+        getSelection(id).clear();
+        updateSelectUI(id);
+      }, 3000);
+      delete copyQueue[id];
+    }
+  }).catch(err => {
+    progressEl.innerHTML = err.name === 'NotAllowedError'
+      ? `⚠️ Safari chặn copy ảnh.<br>Hãy <b>nhấn giữ ảnh</b> → <b>Sao chép</b>, hoặc dùng nút <b>Gửi</b> để chia sẻ thẳng sang Zalo.`
+      : `❌ Ảnh ${n}: ${err.message || err.name}`;
+    delete copyQueue[id];
+  });
+}
+
+// Chuyển data URL thành PNG blob (trả về Promise - KHÔNG await)
+function toPngBlobPromise(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
       const c = document.createElement('canvas');
       c.width = img.naturalWidth; c.height = img.naturalHeight;
       c.getContext('2d').drawImage(img, 0, 0);
-      const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-
-      if (i < indices.length - 1) {
-        // Wait for user to paste before next image
-        await new Promise(r => {
-          progressEl.innerHTML = `✅ Đã copy ảnh ${i+1}/${indices.length}<br><b>Dán vào Zalo</b>, rồi nhấn nút bên dưới 👇<br><button onclick="this.parentElement._resolve()" style="margin-top:6px;padding:8px 24px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:14px;cursor:pointer;">▶ Copy ảnh tiếp theo</button>`;
-          progressEl._resolve = r;
-        });
-      } else {
-        showToast(`✅ Đã copy xong ${indices.length} ảnh! Dán ảnh cuối vào Zalo`);
-      }
-    } catch(err) {
-      progressEl.textContent = `❌ Ảnh ${idx+1}: Không copy được (${err.message || 'lỗi'})`;
-      await new Promise(r => setTimeout(r, 1500));
-    }
-  }
-
-  progressEl.classList.remove('active');
-  sel.clear();
-  updateSelectUI(id);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('toBlob fail')), 'image/png');
+    };
+    img.onerror = () => reject(new Error('load fail'));
+    img.src = src;
+  });
 }
 
-// Copy 1 ảnh vào clipboard
-async function copyOneImage(idx, id, e) {
+// Copy 1 ảnh — KHÔNG async, KHÔNG await trước clipboard.write (bắt buộc cho Safari iOS)
+function copyOneImage(idx, id, e) {
   if (e) e.stopPropagation();
   const post = posts.find(p => p.id === id);
   if (!post || !post.images[idx]) return;
   const src = post.images[idx];
-  try {
-    const img = new Image(); img.crossOrigin = 'anonymous';
-    await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = src; });
-    const c = document.createElement('canvas');
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    c.getContext('2d').drawImage(img, 0, 0);
-    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-    showToast(`✅ Đã copy ảnh ${idx+1}! Dán vào Zalo`);
-  } catch(err) {
-    // Fallback: try downloads API
-    const dl = await getDownloads();
-    if (dl) {
-      try {
-        const blob = dataUrlToBlob(src);
-        const ext = src.includes('image/png') ? 'png' : 'jpg';
-        await dl.save({ filename: `anh_${idx+1}.${ext}`, data: blob });
-        showToast(`✅ Đã tải ảnh ${idx+1}!`);
-      } catch(e2) { showToast('❌ Không copy được ảnh'); }
-    } else {
-      showToast('💡 Nhấn giữ ảnh → Sao chép hình ảnh', 3000);
-    }
+
+  if (!navigator.clipboard || !window.ClipboardItem) {
+    showToast('💡 Nhấn giữ ảnh → Sao chép hình ảnh', 3000);
+    return;
   }
+
+  // Safari yêu cầu: truyền Promise vào ClipboardItem, gọi write() ngay trong cú chạm
+  const item = new ClipboardItem({ 'image/png': toPngBlobPromise(src) });
+
+  navigator.clipboard.write([item])
+    .then(() => showToast(`✅ Đã copy ảnh ${idx + 1}! Dán vào Zalo`))
+    .catch(err => {
+      if (err.name === 'NotAllowedError') showToast('💡 Nhấn giữ ảnh → Sao chép hình ảnh', 3500);
+      else showToast(`❌ Ảnh ${idx + 1}: ${err.message || err.name}`, 3000);
+    });
 }
 
 // Tải ảnh về điện thoại
@@ -1253,9 +1345,9 @@ function renderPosts() {
           <div class="compact-meta">${metaParts}</div>
         </div>
         <div class="compact-actions">
-          <button class="compact-copy" onclick="copyText('${post.id}', event)" title="Copy nội dung văn bản">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            Copy
+          <button class="compact-copy" onclick="sendToZalo('${post.id}', event)" title="Gửi ảnh + nội dung sang Zalo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            Gửi
           </button>
           <button class="compact-expand" title="Mở rộng">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -1342,5 +1434,3 @@ save();
 renderPosts();
 checkDraft();
 </script>
-
-</body></html>
