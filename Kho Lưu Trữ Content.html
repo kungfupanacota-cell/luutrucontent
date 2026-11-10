@@ -1,0 +1,1346 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Kho Lưu Trữ Content</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #FAFAF8;
+    --surface: #FFFFFF;
+    --surface-hover: #F5F5F3;
+    --surface-alt: #F0EFEB;
+    --border: #E8E6E1;
+    --fg: #1A1A18;
+    --fg-secondary: #6B6B66;
+    --accent: #2D7A5F;
+    --accent-light: #E8F5EE;
+    --accent-hover: #236B50;
+    --danger: #C0392B;
+    --danger-light: #FDEDEB;
+    --warning: #E67E22;
+    --warning-light: #FEF5E7;
+    --toast-bg: #1A1A18;
+    --toast-fg: #FAFAF8;
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121210; --surface: #1E1E1C; --surface-hover: #2A2A27; --surface-alt: #252523;
+      --border: #333330; --fg: #EDEDEB; --fg-secondary: #9A9A95;
+      --accent: #4ABA8A; --accent-light: #1A2F26; --accent-hover: #5CD49E;
+      --danger: #E74C3C; --danger-light: #2D1A18;
+      --warning: #F39C12; --warning-light: #2D2518;
+      --toast-bg: #EDEDEB; --toast-fg: #121210;
+      --shadow: 0 1px 3px rgba(0,0,0,0.2); --shadow-lg: 0 4px 12px rgba(0,0,0,0.3);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121210; --surface: #1E1E1C; --surface-hover: #2A2A27; --surface-alt: #252523;
+    --border: #333330; --fg: #EDEDEB; --fg-secondary: #9A9A95;
+    --accent: #4ABA8A; --accent-light: #1A2F26; --accent-hover: #5CD49E;
+    --danger: #E74C3C; --danger-light: #2D1A18;
+    --warning: #F39C12; --warning-light: #2D2518;
+    --toast-bg: #EDEDEB; --toast-fg: #121210;
+    --shadow: 0 1px 3px rgba(0,0,0,0.2); --shadow-lg: 0 4px 12px rgba(0,0,0,0.3);
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font-body);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 0; max-width: 800px; margin: 0 auto;
+  }
+  * { box-sizing: border-box; }
+
+  /* ── Header ── */
+  .header { padding: 28px 0 20px; display: flex; align-items: center; justify-content: space-between; }
+  .header-left h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+  .header-left p { color: var(--fg-secondary); font-size: 0.8125rem; margin: 4px 0 0; }
+  .header-right { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface); color: var(--fg-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s; position: relative;
+  }
+  .icon-btn:hover { background: var(--surface-hover); color: var(--fg); }
+  .icon-btn.active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+  .icon-btn svg { width: 20px; height: 20px; }
+
+  .badge {
+    position: absolute; top: -4px; right: -4px; background: var(--accent); color: #fff;
+    font-size: 0.625rem; font-weight: 700; width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 16px; font-family: var(--font-body); font-size: 0.875rem; font-weight: 500;
+    color: var(--fg-secondary); background: none; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab:hover:not(.active) { color: var(--fg); }
+
+  /* ── Add Button ── */
+  .add-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius);
+    font-family: var(--font-body); font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+    transition: background 0.15s; margin-bottom: 20px;
+  }
+  .add-btn:hover { background: var(--accent-hover); }
+  .add-btn svg { width: 20px; height: 20px; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+    padding: 16px; padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  .modal-overlay[hidden] { display: none !important; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius); width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 0; }
+  .modal-header h2 { font-family: var(--font-display); font-size: 1.1875rem; font-weight: 700; margin: 0; }
+  .modal-close {
+    background: none; border: none; color: var(--fg-secondary); cursor: pointer;
+    padding: 4px; border-radius: 6px; line-height: 1; font-size: 1.25rem;
+  }
+  .modal-close:hover { background: var(--surface-hover); }
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+  .form-label {
+    display: block; font-size: 0.8125rem; font-weight: 600; color: var(--fg-secondary);
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  /* ── Multi-Image Upload ── */
+  .images-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;
+  }
+  .img-thumb {
+    position: relative; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden;
+    border: 1px solid var(--border); cursor: grab; background: var(--surface-hover);
+  }
+  .img-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .img-thumb .star-badge {
+    position: absolute; top: 4px; left: 4px; background: var(--warning); color: #fff;
+    font-size: 0.5rem; padding: 2px 5px; border-radius: 4px; font-weight: 700;
+  }
+  .img-thumb .remove-img {
+    position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: #fff;
+    border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer;
+    font-size: 0.75rem; display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .img-thumb:hover .remove-img { opacity: 1; }
+  .img-add-btn {
+    aspect-ratio: 1; border: 2px dashed var(--border); border-radius: var(--radius-sm);
+    background: none; cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px; color: var(--fg-secondary);
+    font-size: 0.6875rem; transition: all 0.15s; position: relative;
+  }
+  .img-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .img-add-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .img-add-btn svg { width: 24px; height: 24px; }
+
+  textarea {
+    width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.9375rem;
+    color: var(--fg); background: var(--surface); resize: vertical; line-height: 1.6;
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  textarea::placeholder { color: var(--fg-secondary); }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 0 20px 20px; }
+  .btn { padding: 10px 20px; border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); transition: all 0.15s; }
+  .btn-cancel { background: var(--surface-hover); color: var(--fg); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
+
+  /* ── Post Cards ── */
+  .posts { display: flex; flex-direction: column; gap: 10px; padding-bottom: 40px; }
+  .post-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.15s;
+  }
+  .post-card:hover { box-shadow: var(--shadow-lg); }
+
+  /* ── Compact (collapsed) card ── */
+  .compact-row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px; cursor: pointer;
+  }
+  .compact-thumb {
+    width: 52px; height: 52px; border-radius: 8px; overflow: hidden; flex-shrink: 0;
+    background: var(--surface-hover); position: relative;
+  }
+  .compact-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .compact-thumb .img-count-badge {
+    position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff;
+    font-size: 0.5625rem; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+  }
+  .compact-no-img {
+    width: 52px; height: 52px; border-radius: 8px; flex-shrink: 0;
+    background: var(--accent-light); display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 1.25rem;
+  }
+  .compact-info { flex: 1; min-width: 0; }
+  .compact-preview {
+    font-size: 0.8125rem; color: var(--fg); line-height: 1.4;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .compact-meta { font-size: 0.6875rem; color: var(--fg-secondary); margin-top: 3px; }
+  .compact-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .compact-copy {
+    display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px;
+    border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.75rem;
+    font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
+    background: var(--accent); color: #fff;
+  }
+  .compact-copy:hover { background: var(--accent-hover); }
+  .compact-copy svg { width: 14px; height: 14px; }
+  .compact-expand {
+    padding: 6px; border-radius: var(--radius-sm); background: var(--surface-hover);
+    border: none; color: var(--fg-secondary); cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .compact-expand:hover { background: var(--accent-light); color: var(--accent); }
+  .compact-expand svg { width: 16px; height: 16px; transition: transform 0.2s; }
+  .post-card.expanded .compact-expand svg { transform: rotate(180deg); }
+
+  /* ── Expanded card content ── */
+  .expanded-content { display: none; border-top: 1px solid var(--border); }
+  .post-card.expanded .expanded-content { display: block; }
+  .post-card.expanded .compact-expand svg { transform: rotate(180deg); }
+  .img-copy-grid { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+  .img-copy-item { position: relative; border-radius: var(--radius-sm); overflow: hidden; border: 3px solid transparent; transition: border-color .15s; }
+  .img-copy-item.selected { border-color: var(--accent); }
+  .img-copy-item img { width: 100%; display: block; }
+  .img-check { position: absolute; top: 8px; left: 8px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-size: 16px; z-index: 2; }
+  .img-copy-item.selected .img-check { background: var(--accent); border-color: var(--accent); }
+  .img-copy-btn { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.75); color: #fff; border: none; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-family: var(--font-body); cursor: pointer; backdrop-filter: blur(4px); }
+  .img-copy-btn:active { background: var(--accent); }
+  .select-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-size: 13px; color: var(--fg-secondary); }
+  .select-bar button { background: var(--accent); color: #fff; border: none; border-radius: 20px; padding: 7px 16px; font-size: 13px; font-family: var(--font-body); cursor: pointer; }
+  .select-bar button:disabled { opacity: 0.4; }
+  .select-bar button.select-all-btn { background: var(--surface-alt); color: var(--fg); border: 1px solid var(--border); }
+  .copy-progress { display: none; padding: 8px 12px; background: var(--warning-light); border-radius: var(--radius-sm); margin: 0 10px 8px; font-size: 13px; color: var(--fg); text-align: center; }
+  .copy-progress.active { display: block; }
+  .collapse-btn { width: 100%; padding: 10px; border: none; background: var(--surface-alt); color: var(--fg-secondary); font-size: 13px; font-family: var(--font-body); cursor: pointer; border-radius: 0 0 var(--radius) var(--radius); margin-top: 4px; }
+  .collapse-btn:active { background: var(--border); }
+
+  .post-images { display: grid; gap: 2px; }
+  .post-images.count-1 { grid-template-columns: 1fr; }
+  .post-images.count-2 { grid-template-columns: 1fr 1fr; }
+  .post-images.count-3 { grid-template-columns: 2fr 1fr; grid-template-rows: auto auto; }
+  .post-images.count-3 .pi-item:first-child { grid-row: 1 / 3; }
+  .post-images.count-4 { grid-template-columns: 1fr 1fr; }
+  .post-images .pi-item {
+    position: relative; overflow: hidden; cursor: pointer; background: var(--surface-hover);
+  }
+  .post-images .pi-item img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 120px; }
+  .post-images.count-1 .pi-item img { max-height: 400px; }
+  .post-images .pi-item .more-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex;
+    align-items: center; justify-content: center; color: #fff; font-size: 1.5rem; font-weight: 700;
+  }
+  .post-images .pi-item .main-star {
+    position: absolute; top: 6px; left: 6px; background: var(--warning); color: #fff;
+    font-size: 0.625rem; padding: 2px 8px; border-radius: 4px; font-weight: 700;
+  }
+
+  .post-body { padding: 14px 16px 4px; }
+  .post-content { font-size: 0.9375rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .post-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px 14px; gap: 8px;
+  }
+  .post-date { color: var(--fg-secondary); font-size: 0.75rem; }
+  .post-actions { display: flex; gap: 6px; }
+  .copy-btn, .edit-btn, .delete-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px;
+    border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.8125rem;
+    font-weight: 600; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .copy-btn { background: var(--accent-light); color: var(--accent); }
+  .copy-btn:hover { background: var(--accent); color: #fff; }
+  .edit-btn { background: var(--surface-hover); color: var(--fg-secondary); }
+  .edit-btn:hover { background: var(--accent-light); color: var(--accent); }
+  .delete-btn { background: transparent; color: var(--fg-secondary); padding: 7px; }
+  .delete-btn:hover { background: var(--danger-light); color: var(--danger); }
+  .copy-btn svg, .edit-btn svg, .delete-btn svg { width: 15px; height: 15px; }
+
+  /* ── Settings Panel ── */
+  .settings-panel[hidden] { display: none !important; }
+  .settings-panel { padding-bottom: 40px; }
+  .settings-section {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .settings-section-header {
+    padding: 16px; display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+  }
+  .settings-section-header h3 {
+    font-family: var(--font-display); font-size: 1rem; font-weight: 600; margin: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .settings-section-header p { color: var(--fg-secondary); font-size: 0.8125rem; margin: 2px 0 0; }
+  .ss-body { padding: 0 16px 16px; }
+
+  .var-row {
+    display: flex; gap: 8px; align-items: center; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-row:last-child { border-bottom: none; }
+  .var-row input {
+    flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-family: var(--font-body); font-size: 0.875rem; color: var(--fg); background: var(--surface);
+    min-width: 0;
+  }
+  .var-row input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .var-row .var-label { font-size: 0.75rem; color: var(--fg-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; min-width: 50px; }
+  .var-row button {
+    padding: 6px; border: none; background: none; color: var(--fg-secondary); cursor: pointer; border-radius: 4px;
+  }
+  .var-row button:hover { background: var(--danger-light); color: var(--danger); }
+
+  .add-var-btn {
+    display: flex; align-items: center; gap: 6px; padding: 10px; width: 100%;
+    background: var(--accent-light); border: none; border-radius: var(--radius-sm);
+    color: var(--accent); font-family: var(--font-body); font-size: 0.8125rem;
+    font-weight: 600; cursor: pointer; margin-top: 8px;
+  }
+  .add-var-btn:hover { background: var(--accent); color: #fff; }
+
+  .phrase-item {
+    padding: 12px; border-bottom: 1px solid var(--border); display: flex;
+    align-items: flex-start; gap: 10px;
+  }
+  .phrase-item:last-child { border-bottom: none; }
+  .phrase-text { flex: 1; font-size: 0.875rem; line-height: 1.5; min-width: 0; word-break: break-word; }
+  .phrase-count {
+    font-size: 0.6875rem; color: var(--fg-secondary); background: var(--surface-alt);
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap; font-weight: 600;
+  }
+  .phrase-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .phrase-actions button {
+    padding: 5px 8px; border: none; border-radius: 4px; cursor: pointer;
+    font-size: 0.75rem; font-weight: 600; font-family: var(--font-body);
+  }
+  .phrase-edit-btn { background: var(--accent-light); color: var(--accent); }
+  .phrase-edit-btn:hover { background: var(--accent); color: #fff; }
+  .phrase-del-btn { background: var(--danger-light); color: var(--danger); }
+  .phrase-del-btn:hover { background: var(--danger); color: #fff; }
+
+  .no-phrases { padding: 24px; text-align: center; color: var(--fg-secondary); font-size: 0.875rem; }
+
+  /* ── Confirm Bar ── */
+  .confirm-bar {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+    background: var(--danger-light); border-top: 1px solid var(--border); font-size: 0.8125rem;
+  }
+  .confirm-bar span { flex: 1; color: var(--danger); font-weight: 500; }
+  .confirm-bar button {
+    padding: 6px 14px; border-radius: 6px; font-family: var(--font-body);
+    font-size: 0.8125rem; font-weight: 600; cursor: pointer; border: none;
+  }
+  .confirm-yes { background: var(--danger); color: #fff; }
+  .confirm-no { background: var(--surface); color: var(--fg); border: 1px solid var(--border) !important; }
+
+  /* ── Lightbox ── */
+  .lightbox {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 150; cursor: zoom-out;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .lightbox[hidden] { display: none !important; }
+  .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; }
+  .lb-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2);
+    border: none; color: #fff; width: 44px; height: 44px; border-radius: 50%;
+    cursor: pointer; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;
+  }
+  .lb-nav:hover { background: rgba(255,255,255,0.35); }
+  .lb-prev { left: 12px; }
+  .lb-next { right: 12px; }
+  .lb-counter {
+    position: absolute; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.7); font-size: 0.8125rem;
+  }
+  .lb-close {
+    position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px;
+    background: rgba(255,255,255,0.15); border: none; color: #fff; width: 40px; height: 40px;
+    border-radius: 50%; cursor: pointer; font-size: 1.25rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); left: 50%;
+    transform: translateX(-50%) translateY(80px); background: var(--toast-bg); color: var(--toast-fg);
+    padding: 12px 24px; border-radius: 999px; font-size: 0.875rem; font-weight: 500;
+    box-shadow: var(--shadow-lg); opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 200; pointer-events: none; white-space: nowrap; max-width: calc(100% - 40px);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--fg-secondary); }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 10px; opacity: 0.35; }
+  .empty-state h3 { font-family: var(--font-display); font-size: 1.0625rem; color: var(--fg); margin: 0 0 6px; }
+  .empty-state p { font-size: 0.8125rem; margin: 0; }
+
+  .draft-banner {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px; margin-bottom: 16px;
+    background: var(--warning-light); border: 1px solid var(--warning); border-radius: var(--radius);
+    font-size: 0.8125rem; color: var(--fg);
+  }
+  .draft-banner button { padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-family: var(--font-body); font-size: 0.8125rem; }
+  .draft-restore { background: var(--warning); color: #fff; }
+  .draft-dismiss { background: var(--surface); color: var(--fg); }
+
+  /* ── Inline edit for phrases ── */
+  .phrase-edit-input {
+    flex: 1; padding: 6px 8px; border: 1px solid var(--accent); border-radius: 4px;
+    font-family: var(--font-body); font-size: 0.875rem; color: var(--fg); background: var(--surface);
+    min-width: 0;
+  }
+
+  @media (max-width: 500px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .header-right { align-self: flex-end; }
+    .post-footer { flex-direction: column; align-items: flex-start; }
+    .post-actions { align-self: flex-end; }
+    .phrase-item { flex-direction: column; }
+    .phrase-actions { align-self: flex-end; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+</style>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>Kho Lưu Trữ Content</h1>
+    <p id="postCount">0 bài đăng</p>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" id="settingsBtn" onclick="toggleView('settings')" title="Cài đặt đồng bộ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Main Content View -->
+<div id="mainView">
+  <button class="add-btn" onclick="openModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Thêm bài đăng mới
+  </button>
+  <div id="draftBanner" hidden></div>
+  <div class="posts" id="postsContainer"></div>
+</div>
+
+<!-- Settings View -->
+<div id="settingsView" class="settings-panel" hidden>
+  <div class="tabs">
+    <button class="tab active" onclick="switchSettingsTab('sync',this)">Sửa đồng bộ</button>
+    <button class="tab" onclick="switchSettingsTab('phrases',this)">Câu chung</button>
+  </div>
+
+  <div id="syncTab">
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
+          <h3>📝 Biến đồng bộ</h3>
+          <p>Thay đổi 1 lần, cập nhật tất cả bài đăng</p>
+        </div>
+      </div>
+      <div class="ss-body">
+        <div id="varsContainer"></div>
+        <button class="add-var-btn" onclick="addVariable()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Thêm biến mới
+        </button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
+          <h3>🔄 Tìm & thay thế toàn bộ</h3>
+          <p>Tìm và thay thế nội dung trong tất cả bài đăng</p>
+        </div>
+      </div>
+      <div class="ss-body">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input id="findInput" type="text" placeholder="Nội dung cần tìm..." style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-body);font-size:0.875rem;color:var(--fg);background:var(--surface);">
+          <input id="replaceInput" type="text" placeholder="Thay thế bằng..." style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-family:var(--font-body);font-size:0.875rem;color:var(--fg);background:var(--surface);">
+          <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <span id="findCount" style="flex:1;font-size:0.8125rem;color:var(--fg-secondary);align-self:center;"></span>
+            <button class="btn btn-primary" onclick="doFindReplace()" style="padding:8px 16px;">Thay thế tất cả</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="phrasesTab" hidden>
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
+          <h3>🔗 Câu lặp lại trong các bài đăng</h3>
+          <p>Các đoạn text xuất hiện ở nhiều bài — sửa hoặc xoá đồng bộ</p>
+        </div>
+      </div>
+      <div class="ss-body" id="phrasesContainer">
+        <button class="add-var-btn" onclick="scanPhrases()" style="margin-top:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Quét tìm câu chung
+        </button>
+        <div id="phrasesList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Thêm bài đăng</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="form-label">Hình ảnh (nhiều ảnh)</label>
+        <div class="images-grid" id="imagesGrid">
+          <button class="img-add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Thêm ảnh
+            <input type="file" accept="image/*" multiple onchange="handleMultiImage(event)">
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Nội dung</label>
+        <textarea id="contentInput" placeholder="Nhập nội dung bài đăng..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Huỷ</button>
+      <button class="btn btn-primary" id="saveBtn" onclick="savePost()">Lưu bài đăng</button>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" hidden>
+  <button class="lb-close" onclick="closeLightbox()">✕</button>
+  <button class="lb-nav lb-prev" onclick="lbNav(event,-1)">‹</button>
+  <img id="lightboxImg" src="" alt="">
+  <button class="lb-nav lb-next" onclick="lbNav(event,1)">›</button>
+  <div class="lb-counter" id="lbCounter"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Phrase Edit Modal -->
+<div class="modal-overlay" id="phraseModal" hidden>
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h2>Sửa câu đồng bộ</h2>
+      <button class="modal-close" onclick="document.getElementById('phraseModal').hidden=true">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label class="form-label">Câu hiện tại</label>
+        <div id="phraseOld" style="padding:10px;background:var(--surface-alt);border-radius:6px;font-size:0.875rem;line-height:1.5;word-break:break-word;"></div>
+      </div>
+      <div>
+        <label class="form-label">Thay thế bằng</label>
+        <textarea id="phraseNew" style="min-height:80px;" placeholder="Nhập nội dung mới..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="document.getElementById('phraseModal').hidden=true">Huỷ</button>
+      <button class="btn btn-primary" onclick="applyPhraseEdit()">Cập nhật tất cả</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ State ═══
+let posts = [];
+let syncVars = []; // {id, name, oldValue, value}
+let editingId = null;
+let currentImages = []; // array of data URLs
+let lbImages = []; let lbIdx = 0;
+
+// ═══ Persistence ═══
+function load() {
+  try {
+    const s = localStorage.getItem('cv-posts');
+    if (s) posts = JSON.parse(s);
+    const v = localStorage.getItem('cv-vars');
+    if (v) syncVars = JSON.parse(v);
+  } catch(e) {}
+}
+function save() {
+  try {
+    localStorage.setItem('cv-posts', JSON.stringify(posts));
+    localStorage.setItem('cv-vars', JSON.stringify(syncVars));
+  } catch(e) {}
+}
+// Auto-save draft on input
+function saveDraft() {
+  try {
+    const draft = { images: currentImages, content: document.getElementById('contentInput').value, editingId };
+    sessionStorage.setItem('cv-draft', JSON.stringify(draft));
+  } catch(e) {}
+}
+function loadDraft() {
+  try {
+    const d = sessionStorage.getItem('cv-draft');
+    if (d) {
+      const draft = JSON.parse(d);
+      if (draft.content || (draft.images && draft.images.length)) return draft;
+    }
+  } catch(e) {}
+  return null;
+}
+function clearDraft() { try { sessionStorage.removeItem('cv-draft'); } catch(e) {} }
+
+// Save before unload
+window.addEventListener('beforeunload', () => { save(); });
+
+// ═══ Toast ═══
+let toastTimer;
+function showToast(msg, duration) {
+  const t = document.getElementById('toast');
+  t.innerText = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration || 2400);
+}
+
+// ═══ View Toggle ═══
+let currentView = 'main';
+function toggleView(view) {
+  if (currentView === view) view = 'main';
+  currentView = view;
+  document.getElementById('mainView').hidden = view !== 'main';
+  document.getElementById('settingsView').hidden = view !== 'settings';
+  document.getElementById('settingsBtn').classList.toggle('active', view === 'settings');
+  if (view === 'settings') { renderVars(); }
+}
+function switchSettingsTab(tab, el) {
+  document.getElementById('syncTab').hidden = tab !== 'sync';
+  document.getElementById('phrasesTab').hidden = tab !== 'phrases';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══ Image Analysis — smart sort ═══
+function analyzeImage(dataUrl) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const pixels = w * h;
+      const canvas = document.createElement('canvas');
+      const size = 50; // sample small
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      // Color variance
+      let rSum=0, gSum=0, bSum=0, count=0;
+      for (let i=0; i<data.length; i+=4) { rSum+=data[i]; gSum+=data[i+1]; bSum+=data[i+2]; count++; }
+      const rAvg=rSum/count, gAvg=gSum/count, bAvg=bSum/count;
+      let variance = 0;
+      for (let i=0; i<data.length; i+=4) {
+        variance += (data[i]-rAvg)**2 + (data[i+1]-gAvg)**2 + (data[i+2]-bAvg)**2;
+      }
+      variance /= count;
+      // Saturation
+      let satSum = 0;
+      for (let i=0; i<data.length; i+=4) {
+        const mx = Math.max(data[i],data[i+1],data[i+2]);
+        const mn = Math.min(data[i],data[i+1],data[i+2]);
+        satSum += mx > 0 ? (mx-mn)/mx : 0;
+      }
+      const satAvg = satSum / count;
+      // Score: resolution + color richness + saturation
+      const score = Math.log(pixels)*10 + Math.sqrt(variance) + satAvg*50;
+      resolve({ score, width: w, height: h });
+    };
+    img.src = dataUrl;
+  });
+}
+
+async function sortImages(images) {
+  if (images.length <= 1) return images;
+  const scored = await Promise.all(images.map(async (img) => {
+    const analysis = await analyzeImage(img);
+    return { img, score: analysis.score };
+  }));
+  scored.sort((a,b) => b.score - a.score);
+  return scored.map(s => s.img);
+}
+
+// ═══ Modal ═══
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('modalTitle').textContent = id ? 'Chỉnh sửa' : 'Thêm bài đăng';
+  document.getElementById('saveBtn').textContent = id ? 'Cập nhật' : 'Lưu bài đăng';
+  if (id) {
+    const post = posts.find(p => p.id === id);
+    if (post) {
+      currentImages = [...(post.images || (post.image ? [post.image] : []))];
+      document.getElementById('contentInput').value = post.content || '';
+    }
+  } else {
+    currentImages = [];
+    document.getElementById('contentInput').value = '';
+  }
+  renderImageGrid();
+  document.getElementById('modal').hidden = false;
+}
+function closeModal() {
+  document.getElementById('modal').hidden = true;
+  editingId = null; currentImages = []; clearDraft();
+}
+
+function renderImageGrid() {
+  const grid = document.getElementById('imagesGrid');
+  grid.innerHTML = currentImages.map((src, i) => `
+    <div class="img-thumb">
+      <img src="${src}" alt="img ${i+1}">
+      ${i === 0 && currentImages.length > 1 ? '<span class="star-badge">Chủ đạo</span>' : ''}
+      <button class="remove-img" onclick="removeImage(${i})">✕</button>
+    </div>
+  `).join('') + `
+    <button class="img-add-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Thêm ảnh
+      <input type="file" accept="image/*" multiple onchange="handleMultiImage(event)">
+    </button>
+  `;
+}
+function removeImage(idx) { currentImages.splice(idx, 1); renderImageGrid(); saveDraft(); }
+function handleMultiImage(e) {
+  const files = Array.from(e.target.files);
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      currentImages.push(ev.target.result);
+      loaded++;
+      if (loaded === files.length) { sortAndRender(); }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function sortAndRender() {
+  currentImages = await sortImages(currentImages);
+  renderImageGrid();
+  saveDraft();
+}
+
+// Auto-save draft while editing
+document.getElementById('contentInput').addEventListener('input', saveDraft);
+
+async function savePost() {
+  const content = document.getElementById('contentInput').value.trim();
+  if (!currentImages.length && !content) { showToast('Thêm ảnh hoặc nội dung'); return; }
+  const sorted = await sortImages(currentImages);
+  if (editingId) {
+    const idx = posts.findIndex(p => p.id === editingId);
+    if (idx > -1) { posts[idx].images = sorted; posts[idx].content = content; }
+  } else {
+    posts.unshift({ id: Date.now().toString(), images: sorted, content, date: new Date().toISOString() });
+  }
+  save(); closeModal(); renderPosts();
+  showToast(editingId ? 'Đã cập nhật!' : 'Đã lưu bài đăng!');
+}
+
+// ═══ Share to Zalo: 1 nút = tất cả ảnh + văn bản ═══
+function dataUrlToBlob(dataUrl) {
+  const [head, b64] = dataUrl.split(',');
+  const mime = head.match(/:(.*?);/)[1];
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+function dataUrlToFile(dataUrl, name) {
+  const blob = dataUrlToBlob(dataUrl);
+  return new File([blob], name, { type: blob.type });
+}
+
+function legacyCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(ta);
+  return ok;
+}
+
+// Downloads capability (artifact API)
+let _downloads = null;
+let _downloadsChecked = false;
+async function getDownloads() {
+  if (_downloadsChecked) return _downloads;
+  _downloadsChecked = true;
+  try { if (window.claude && claude.use) _downloads = await claude.use('downloads'); } catch(e) {}
+  return _downloads;
+}
+
+// Image selection state
+const imgSelection = {}; // { postId: Set of indices }
+
+function getSelection(id) {
+  if (!imgSelection[id]) imgSelection[id] = new Set();
+  return imgSelection[id];
+}
+
+function updateSelectUI(id) {
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  const sel = getSelection(id);
+  const total = (post.images || []).length;
+  // Update checkmarks
+  document.querySelectorAll(`.img-copy-grid[data-post="${id}"] .img-copy-item`).forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    const checked = sel.has(idx);
+    el.classList.toggle('selected', checked);
+    el.querySelector('.img-check').textContent = checked ? '✓' : '';
+  });
+  // Update count
+  const countEl = document.querySelector(`.select-count[data-post="${id}"]`);
+  if (countEl) countEl.textContent = `${sel.size}/${total} ảnh`;
+}
+
+function toggleImgSelect(id, idx, e) {
+  if (e) e.stopPropagation();
+  if (e && e.target.closest('.img-copy-btn')) return;
+  const sel = getSelection(id);
+  if (sel.has(idx)) sel.delete(idx); else sel.add(idx);
+  updateSelectUI(id);
+}
+
+function toggleSelectAll(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  const sel = getSelection(id);
+  const total = (post.images || []).length;
+  if (sel.size === total) { sel.clear(); } else { for (let i = 0; i < total; i++) sel.add(i); }
+  updateSelectUI(id);
+}
+
+// Copy selected images one by one with progress
+async function copySelectedImages(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  const sel = getSelection(id);
+  if (!sel.size) { showToast('Chọn ảnh trước khi copy'); return; }
+
+  const indices = [...sel].sort((a, b) => a - b);
+  const progressEl = document.querySelector(`.copy-progress[data-post="${id}"]`);
+  progressEl.classList.add('active');
+
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    progressEl.textContent = `Đang copy ảnh ${i+1}/${indices.length}... Dán vào Zalo rồi nhấn OK`;
+
+    try {
+      const src = post.images[idx];
+      const img = new Image(); img.crossOrigin = 'anonymous';
+      await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = src; });
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+
+      if (i < indices.length - 1) {
+        // Wait for user to paste before next image
+        await new Promise(r => {
+          progressEl.innerHTML = `✅ Đã copy ảnh ${i+1}/${indices.length}<br><b>Dán vào Zalo</b>, rồi nhấn nút bên dưới 👇<br><button onclick="this.parentElement._resolve()" style="margin-top:6px;padding:8px 24px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:14px;cursor:pointer;">▶ Copy ảnh tiếp theo</button>`;
+          progressEl._resolve = r;
+        });
+      } else {
+        showToast(`✅ Đã copy xong ${indices.length} ảnh! Dán ảnh cuối vào Zalo`);
+      }
+    } catch(err) {
+      progressEl.textContent = `❌ Ảnh ${idx+1}: Không copy được (${err.message || 'lỗi'})`;
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+
+  progressEl.classList.remove('active');
+  sel.clear();
+  updateSelectUI(id);
+}
+
+// Copy 1 ảnh vào clipboard
+async function copyOneImage(idx, id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post || !post.images[idx]) return;
+  const src = post.images[idx];
+  try {
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = src; });
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img, 0, 0);
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+    showToast(`✅ Đã copy ảnh ${idx+1}! Dán vào Zalo`);
+  } catch(err) {
+    // Fallback: try downloads API
+    const dl = await getDownloads();
+    if (dl) {
+      try {
+        const blob = dataUrlToBlob(src);
+        const ext = src.includes('image/png') ? 'png' : 'jpg';
+        await dl.save({ filename: `anh_${idx+1}.${ext}`, data: blob });
+        showToast(`✅ Đã tải ảnh ${idx+1}!`);
+      } catch(e2) { showToast('❌ Không copy được ảnh'); }
+    } else {
+      showToast('💡 Nhấn giữ ảnh → Sao chép hình ảnh', 3000);
+    }
+  }
+}
+
+// Tải ảnh về điện thoại
+async function downloadImages(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post || !post.images || !post.images.length) return;
+  const images = post.images;
+
+  const dl = await getDownloads();
+  if (dl) {
+    let saved = 0;
+    for (let i = 0; i < images.length; i++) {
+      try {
+        const blob = dataUrlToBlob(images[i]);
+        const ext = images[i].includes('image/png') ? 'png' : 'jpg';
+        await dl.save({ filename: `anh_${i + 1}.${ext}`, data: blob });
+        saved++;
+      } catch(e) { if (e.code === 'declined') break; }
+    }
+    if (saved) showToast(`✅ Đã tải ${saved} ảnh!\nB1: Mở Zalo → B2: Chọn ảnh từ thư viện`, 3500);
+    else showToast('Chưa tải được ảnh');
+  } else {
+    showToast('⚠️ Không hỗ trợ tải. Nhấn giữ ảnh → Lưu ảnh', 3000);
+  }
+}
+
+// Copy nội dung text
+async function copyText(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post || !post.content) return;
+
+  let ok = false;
+  try { await navigator.clipboard.writeText(post.content); ok = true; }
+  catch(e1) { ok = legacyCopyText(post.content); }
+
+  if (ok) showToast('✅ Đã copy văn bản! Dán vào Zalo');
+  else showToast('❌ Không copy được. Nhấn giữ nội dung để chọn & copy');
+}
+
+// Nút gộp: tải ảnh + copy text (cho compact view)
+async function copyPost(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  const images = post.images || [];
+  const content = post.content || '';
+  if (!images.length && !content) return;
+
+  // Nếu chỉ có text → copy text
+  if (!images.length) { await copyText(id); return; }
+  // Nếu chỉ có ảnh → tải ảnh
+  if (!content) { await downloadImages(id); return; }
+
+  // Có cả 2: copy text trước, rồi tải ảnh
+  let textOk = false;
+  try { await navigator.clipboard.writeText(content); textOk = true; }
+  catch(e1) { textOk = legacyCopyText(content); }
+
+  const dl = await getDownloads();
+  let imgsSaved = 0;
+  if (dl) {
+    for (let i = 0; i < images.length; i++) {
+      try {
+        const blob = dataUrlToBlob(images[i]);
+        const ext = images[i].includes('image/png') ? 'png' : 'jpg';
+        await dl.save({ filename: `anh_${i + 1}.${ext}`, data: blob });
+        imgsSaved++;
+      } catch(e) { if (e.code === 'declined') break; }
+    }
+  }
+
+  if (imgsSaved && textOk) {
+    showToast(`✅ Xong! Mở Zalo:\nB1: Chọn ${imgsSaved} ảnh từ thư viện\nB2: Dán văn bản`, 4500);
+  } else if (textOk) {
+    showToast('✅ Đã copy văn bản!\n⚠️ Ảnh: nhấn giữ ảnh → Lưu → Chọn trên Zalo', 4000);
+  } else if (imgsSaved) {
+    showToast(`✅ Đã tải ${imgsSaved} ảnh!\n⚠️ Nội dung: mở bài → copy thủ công`, 3500);
+  } else {
+    showToast('❌ Lỗi. Mở bài đăng → copy/tải thủ công');
+  }
+}
+
+// ═══ Toggle expand/collapse ═══
+function togglePost(id, e) {
+  // Don't toggle if clicking a button
+  if (e && (e.target.closest('button') || e.target.closest('.post-actions'))) return;
+  const card = document.querySelector(`[data-id="${id}"]`);
+  if (card) card.classList.toggle('expanded');
+}
+
+// ═══ Delete ═══
+function confirmDelete(id) {
+  const card = document.querySelector(`[data-id="${id}"]`);
+  if (!card) return;
+  const ex = card.querySelector('.confirm-bar');
+  if (ex) { ex.remove(); return; }
+  const bar = document.createElement('div');
+  bar.className = 'confirm-bar';
+  bar.innerHTML = `<span>Xoá bài đăng này?</span><button class="confirm-no" onclick="this.closest('.confirm-bar').remove()">Huỷ</button><button class="confirm-yes" onclick="deletePost('${id}')">Xoá</button>`;
+  card.appendChild(bar);
+}
+function deletePost(id) { posts = posts.filter(p => p.id !== id); save(); renderPosts(); showToast('Đã xoá'); }
+
+// ═══ Lightbox ═══
+function openLightbox(images, idx) {
+  lbImages = images; lbIdx = idx;
+  showLbImage();
+  document.getElementById('lightbox').hidden = false;
+}
+function closeLightbox() { document.getElementById('lightbox').hidden = true; }
+function showLbImage() {
+  document.getElementById('lightboxImg').src = lbImages[lbIdx];
+  document.getElementById('lbCounter').textContent = lbImages.length > 1 ? `${lbIdx+1} / ${lbImages.length}` : '';
+  document.querySelector('.lb-prev').hidden = lbImages.length <= 1;
+  document.querySelector('.lb-next').hidden = lbImages.length <= 1;
+}
+function lbNav(e, dir) {
+  e.stopPropagation();
+  lbIdx = (lbIdx + dir + lbImages.length) % lbImages.length;
+  showLbImage();
+}
+document.getElementById('lightbox').addEventListener('click', function(e) {
+  if (e.target === this || e.target === document.getElementById('lightboxImg')) closeLightbox();
+});
+
+// ═══ Sync Variables ═══
+function renderVars() {
+  const c = document.getElementById('varsContainer');
+  c.innerHTML = syncVars.map((v, i) => `
+    <div class="var-row">
+      <span class="var-label">${esc(v.name)}</span>
+      <input type="text" value="${esc(v.value)}" placeholder="Giá trị..." onchange="updateVar(${i}, this.value)">
+      <button onclick="removeVar(${i})" title="Xoá biến">✕</button>
+    </div>
+  `).join('');
+  if (!syncVars.length) c.innerHTML = '<div class="no-phrases">Chưa có biến nào. Ví dụ: SĐT, Zalo, Địa chỉ...</div>';
+}
+function addVariable() {
+  const name = prompt('Tên biến (ví dụ: SĐT, Zalo, Email):');
+  if (!name) return;
+  const value = prompt('Giá trị hiện tại:');
+  if (value === null) return;
+  syncVars.push({ id: Date.now().toString(), name: name.trim(), value: value.trim(), oldValue: value.trim() });
+  save(); renderVars();
+}
+function updateVar(idx, newVal) {
+  const v = syncVars[idx];
+  const old = v.value;
+  if (old && old !== newVal) {
+    let count = 0;
+    posts.forEach(p => {
+      if (p.content && p.content.includes(old)) {
+        p.content = p.content.split(old).join(newVal);
+        count++;
+      }
+    });
+    v.oldValue = old;
+    v.value = newVal;
+    save(); renderPosts();
+    showToast(`Đã cập nhật ${count} bài đăng`);
+  } else {
+    v.value = newVal;
+    save();
+  }
+}
+function removeVar(idx) { syncVars.splice(idx, 1); save(); renderVars(); }
+
+// ═══ Find & Replace ═══
+document.getElementById('findInput')?.addEventListener('input', function() {
+  const term = this.value;
+  if (!term) { document.getElementById('findCount').textContent = ''; return; }
+  let count = 0;
+  posts.forEach(p => { if (p.content && p.content.includes(term)) count++; });
+  document.getElementById('findCount').textContent = count ? `Tìm thấy trong ${count} bài` : 'Không tìm thấy';
+});
+function doFindReplace() {
+  const find = document.getElementById('findInput').value;
+  const replace = document.getElementById('replaceInput').value;
+  if (!find) { showToast('Nhập nội dung cần tìm'); return; }
+  let count = 0;
+  posts.forEach(p => {
+    if (p.content && p.content.includes(find)) {
+      p.content = p.content.split(find).join(replace);
+      count++;
+    }
+  });
+  if (count) {
+    save(); renderPosts();
+    showToast(`Đã thay thế trong ${count} bài`);
+    document.getElementById('findInput').value = '';
+    document.getElementById('replaceInput').value = '';
+    document.getElementById('findCount').textContent = '';
+  } else { showToast('Không tìm thấy nội dung'); }
+}
+
+// ═══ Common Phrases Detection ═══
+function scanPhrases() {
+  const contents = posts.filter(p => p.content).map(p => p.content);
+  if (contents.length < 2) { showToast('Cần ít nhất 2 bài có nội dung'); return; }
+  // Split into sentences
+  const allSentences = [];
+  contents.forEach(c => {
+    const sentences = c.split(/[.\n!?]+/).map(s => s.trim()).filter(s => s.length > 8);
+    sentences.forEach(s => allSentences.push(s));
+  });
+  // Count occurrences across posts (not just in same post)
+  const phraseMap = new Map();
+  const unique = [...new Set(allSentences)];
+  unique.forEach(phrase => {
+    let postCount = 0;
+    contents.forEach(c => { if (c.includes(phrase)) postCount++; });
+    if (postCount >= 2) phraseMap.set(phrase, postCount);
+  });
+  // Remove substrings
+  const phrases = [...phraseMap.entries()]
+    .sort((a,b) => b[1] - a[1] || b[0].length - a[0].length);
+  const filtered = [];
+  for (const [phrase, count] of phrases) {
+    const isSubOf = filtered.some(f => f[0].includes(phrase));
+    if (!isSubOf) filtered.push([phrase, count]);
+  }
+  renderPhrases(filtered.slice(0, 20));
+}
+function renderPhrases(phrases) {
+  const list = document.getElementById('phrasesList');
+  if (!phrases.length) { list.innerHTML = '<div class="no-phrases">Không tìm thấy câu lặp lại</div>'; return; }
+  list.innerHTML = phrases.map(([phrase, count]) => `
+    <div class="phrase-item">
+      <div class="phrase-text">${esc(phrase)}</div>
+      <span class="phrase-count">${count} bài</span>
+      <div class="phrase-actions">
+        <button class="phrase-edit-btn" onclick="openPhraseEdit('${btoa(encodeURIComponent(phrase))}')">Sửa</button>
+        <button class="phrase-del-btn" onclick="deletePhrase('${btoa(encodeURIComponent(phrase))}')">Xoá</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+let editingPhrase = '';
+function openPhraseEdit(b64) {
+  editingPhrase = decodeURIComponent(atob(b64));
+  document.getElementById('phraseOld').textContent = editingPhrase;
+  document.getElementById('phraseNew').value = editingPhrase;
+  document.getElementById('phraseModal').hidden = false;
+}
+function applyPhraseEdit() {
+  const newText = document.getElementById('phraseNew').value;
+  let count = 0;
+  posts.forEach(p => {
+    if (p.content && p.content.includes(editingPhrase)) {
+      p.content = p.content.split(editingPhrase).join(newText);
+      count++;
+    }
+  });
+  save(); renderPosts(); scanPhrases();
+  document.getElementById('phraseModal').hidden = true;
+  showToast(`Đã cập nhật ${count} bài`);
+}
+function deletePhrase(b64) {
+  const phrase = decodeURIComponent(atob(b64));
+  let count = 0;
+  posts.forEach(p => {
+    if (p.content && p.content.includes(phrase)) {
+      p.content = p.content.split(phrase).join('');
+      // clean double newlines
+      p.content = p.content.replace(/\n{3,}/g, '\n\n').trim();
+      count++;
+    }
+  });
+  save(); renderPosts(); scanPhrases();
+  showToast(`Đã xoá câu trong ${count} bài`);
+}
+
+// ═══ Render Posts ═══
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function formatDate(iso) {
+  const d = new Date(iso);
+  return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()} · ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+function renderPosts() {
+  const c = document.getElementById('postsContainer');
+  document.getElementById('postCount').textContent = posts.length + ' bài đăng';
+  if (!posts.length) {
+    c.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><h3>Chưa có bài đăng nào</h3><p>Nhấn "Thêm bài đăng mới" để bắt đầu</p></div>';
+    return;
+  }
+  c.innerHTML = posts.map(post => {
+    const images = post.images || [];
+    const showCount = Math.min(images.length, 4);
+    const countClass = 'count-' + Math.min(showCount, 4);
+    const preview = (post.content || '').split('\n')[0].substring(0, 80) || '(Chỉ có ảnh)';
+    const imgInfo = images.length ? `${images.length} ảnh` : '';
+    const metaParts = [formatDate(post.date), imgInfo].filter(Boolean).join(' · ');
+
+    // Compact row (always visible)
+    const thumbHtml = images.length
+      ? `<div class="compact-thumb">
+          <img src="${images[0]}" alt="" loading="lazy">
+          ${images.length > 1 ? `<span class="img-count-badge">${images.length}</span>` : ''}
+        </div>`
+      : `<div class="compact-no-img"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
+
+    // Expanded content
+    let imagesHtml = '';
+    if (images.length) {
+      const displayImages = images.slice(0, 4);
+      imagesHtml = `<div class="post-images ${countClass}">` + displayImages.map((src, i) => {
+        const isLast = i === 3 && images.length > 4;
+        return `<div class="pi-item" onclick="openLightbox(${esc(JSON.stringify(images)).replace(/"/g,'&quot;')}, ${i})">
+          <img src="${src}" alt="" loading="lazy">
+          ${i === 0 && images.length > 1 ? '<span class="main-star">Chủ đạo</span>' : ''}
+          ${isLast ? `<div class="more-overlay">+${images.length - 4}</div>` : ''}
+        </div>`;
+      }).join('') + '</div>';
+    }
+
+    return `<div class="post-card" data-id="${post.id}">
+      <div class="compact-row" onclick="togglePost('${post.id}', event)">
+        ${thumbHtml}
+        <div class="compact-info">
+          <div class="compact-preview">${esc(preview)}</div>
+          <div class="compact-meta">${metaParts}</div>
+        </div>
+        <div class="compact-actions">
+          <button class="compact-copy" onclick="copyText('${post.id}', event)" title="Copy nội dung văn bản">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copy
+          </button>
+          <button class="compact-expand" title="Mở rộng">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="expanded-content">
+        ${images.length ? `
+        <div class="select-bar" data-post="${post.id}">
+          <button class="select-all-btn" onclick="toggleSelectAll('${post.id}', event)">Chọn tất cả</button>
+          <span class="select-count" data-post="${post.id}">0/${images.length} ảnh</span>
+          <button onclick="copySelectedImages('${post.id}', event)" class="copy-selected-btn">📷 Copy ảnh đã chọn</button>
+        </div>
+        <div class="copy-progress" data-post="${post.id}"></div>
+        <div class="img-copy-grid" data-post="${post.id}">${images.map((src, i) => `<div class="img-copy-item" data-idx="${i}" onclick="toggleImgSelect('${post.id}', ${i}, event)">
+          <div class="img-check"></div>
+          <img src="${src}" alt="" loading="lazy">
+          <button class="img-copy-btn" onclick="copyOneImage(${i}, '${post.id}', event)">📷 Copy</button>
+        </div>`).join('')}</div>` : ''}
+        ${post.content ? `<div class="post-body"><div class="post-content">${esc(post.content)}</div></div>` : ''}
+        <div class="post-footer">
+          <div class="post-actions" style="flex-wrap:wrap;gap:6px;">
+            ${post.content ? `<button class="copy-btn" onclick="copyText('${post.id}', event)">
+              📋 Copy nội dung
+            </button>` : ''}
+            <button class="edit-btn" onclick="openModal('${post.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Sửa
+            </button>
+            <button class="delete-btn" onclick="confirmDelete('${post.id}')" title="Xoá">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
+          </div>
+          <button class="collapse-btn" onclick="togglePost('${post.id}')">▲ Thu gọn</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══ Draft Recovery ═══
+function checkDraft() {
+  const draft = loadDraft();
+  if (draft && (draft.content || (draft.images && draft.images.length))) {
+    const banner = document.getElementById('draftBanner');
+    banner.hidden = false;
+    banner.className = 'draft-banner';
+    banner.innerHTML = `
+      <span style="flex:1;">Bạn có bản nháp chưa lưu</span>
+      <button class="draft-restore" onclick="restoreDraft()">Khôi phục</button>
+      <button class="draft-dismiss" onclick="dismissDraft()">Bỏ qua</button>
+    `;
+  }
+}
+function restoreDraft() {
+  const draft = loadDraft();
+  if (draft) {
+    currentImages = draft.images || [];
+    editingId = draft.editingId || null;
+    renderImageGrid();
+    document.getElementById('contentInput').value = draft.content || '';
+    document.getElementById('modal').hidden = false;
+    document.getElementById('modalTitle').textContent = editingId ? 'Chỉnh sửa' : 'Thêm bài đăng';
+  }
+  document.getElementById('draftBanner').hidden = true;
+}
+function dismissDraft() {
+  clearDraft();
+  document.getElementById('draftBanner').hidden = true;
+}
+
+// Close modals on overlay click
+document.getElementById('modal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+document.getElementById('phraseModal').addEventListener('click', function(e) { if(e.target===this) this.hidden=true; });
+
+// ═══ Init ═══
+load();
+// Migrate old single-image posts
+posts.forEach(p => {
+  if (p.image && !p.images) { p.images = [p.image]; delete p.image; }
+  if (!p.images) p.images = [];
+});
+save();
+renderPosts();
+checkDraft();
+</script>
+
+</body></html>
