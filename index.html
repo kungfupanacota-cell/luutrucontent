@@ -133,6 +133,27 @@
   .flow-status { font-size: 17px; font-weight: 600; color: var(--fg); }
   .flow-hint { font-size: 15px; color: var(--fg-secondary); line-height: 1.5; }
 
+  /* ── Bộ nhớ ── */
+  .st-big { font-family: var(--font-display); font-size: 34px; font-weight: 700; line-height: 1.1; }
+  .st-sub { font-size: 14px; color: var(--fg-secondary); margin-top: 4px; }
+  .st-bar { height: 10px; background: var(--surface-alt); border-radius: 6px; overflow: hidden; margin: 12px 0 6px; }
+  .st-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width .4s; }
+  .st-fill.warn { background: var(--danger); }
+  .st-stats { display: flex; gap: 10px; margin-top: 16px; }
+  .st-stats > div { flex: 1; background: var(--surface-alt); border-radius: 12px; padding: 14px; text-align: center; }
+  .st-stats b { display: block; font-size: 24px; font-family: var(--font-display); }
+  .st-stats span { font-size: 13px; color: var(--fg-secondary); }
+  .st-row { margin-top: 16px; padding: 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+  .st-row.ok { background: var(--accent-light); border: 1px solid var(--accent); }
+  .st-row.warn { background: var(--warning-light); border: 1px solid var(--warning); }
+  .st-btn { display: block; width: 100%; padding: 16px; margin-bottom: 10px; border-radius: 13px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--fg);
+    font-size: 16px; font-weight: 600; font-family: var(--font-body); cursor: pointer;
+    text-align: center; min-height: 54px; -webkit-tap-highlight-color: transparent; }
+  .st-btn:active { background: var(--surface-hover); }
+  .st-btn.st-main { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .st-note { font-size: 13px; color: var(--fg-secondary); line-height: 1.5; margin: 6px 0 0; }
+
   /* ── Viết lại nội dung ── */
   .rw-box { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 12px;
     padding: 14px; font-size: 15px; line-height: 1.6; white-space: pre-wrap; max-height: 40vh; overflow-y: auto; }
@@ -621,6 +642,37 @@
   <div class="tabs">
     <button class="tab active" onclick="switchSettingsTab('sync',this)">Sửa đồng bộ</button>
     <button class="tab" onclick="switchSettingsTab('phrases',this)">Câu chung</button>
+    <button class="tab" onclick="switchSettingsTab('storage',this)">Bộ nhớ</button>
+  </div>
+
+  <div id="storageTab" hidden>
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
+          <h3>💾 Dung lượng</h3>
+          <p>Ảnh giữ nguyên chất lượng gốc</p>
+        </div>
+      </div>
+      <div class="ss-body">
+        <div id="stMeter"></div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-header">
+        <div>
+          <h3>📦 Sao lưu</h3>
+          <p>Phòng khi mất máy hoặc đổi trình duyệt</p>
+        </div>
+      </div>
+      <div class="ss-body">
+        <button class="st-btn st-main" onclick="exportBackup()">⬇️ Tải file sao lưu</button>
+        <label class="st-btn">⬆️ Khôi phục từ file
+          <input type="file" accept="application/json,.json" onchange="importBackup(event)" hidden>
+        </label>
+        <p class="st-note">File sao lưu chứa toàn bộ bài đăng và ảnh gốc. Nên tải về mỗi tuần một lần.</p>
+      </div>
+    </div>
   </div>
 
   <div id="syncTab">
@@ -751,20 +803,105 @@ let editingId = null;
 let currentImages = []; // array of data URLs
 let lbImages = []; let lbIdx = 0;
 
-// ═══ Persistence ═══
-function load() {
+// ═══ Lưu trữ: IndexedDB (dung lượng lớn), tự chuyển từ localStorage ═══
+const DB_NAME = 'cv-db', DB_STORE = 'kv';
+let _db = null;
+
+function idb() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(DB_STORE)) r.result.createObjectStore(DB_STORE); };
+    r.onsuccess = () => { _db = r.result; res(_db); };
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbGet(k) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const q = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(k);
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  });
+}
+async function idbSet(k, v) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(v, k);
+    tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+  });
+}
+
+async function load() {
+  // 1) thử IndexedDB
+  try {
+    const p = await idbGet('posts');
+    const v = await idbGet('vars');
+    if (p) posts = p;
+    if (v) syncVars = v;
+    if (p) return;            // đã có dữ liệu mới
+  } catch (e) {}
+
+  // 2) chưa có → chuyển từ localStorage sang (lần đầu chạy bản mới)
   try {
     const s = localStorage.getItem('cv-posts');
     if (s) posts = JSON.parse(s);
     const v = localStorage.getItem('cv-vars');
     if (v) syncVars = JSON.parse(v);
-  } catch(e) {}
+    if (s || v) { await saveNow(); showToast('✅ Đã chuyển dữ liệu sang kho lưu trữ mới', 3500); }
+  } catch (e) {}
 }
+
+let _saveTimer = null;
 function save() {
+  // gộp nhiều lần gọi liên tiếp thành 1 lần ghi
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveNow, 150);
+}
+async function saveNow() {
   try {
-    localStorage.setItem('cv-posts', JSON.stringify(posts));
-    localStorage.setItem('cv-vars', JSON.stringify(syncVars));
-  } catch(e) {}
+    await idbSet('posts', posts);
+    await idbSet('vars', syncVars);
+  } catch (e) {
+    // dự phòng: localStorage (có thể đầy)
+    try {
+      localStorage.setItem('cv-posts', JSON.stringify(posts));
+      localStorage.setItem('cv-vars', JSON.stringify(syncVars));
+    } catch (e2) {
+      showToast('⚠️ Không lưu được — bộ nhớ đã đầy. Hãy xoá bớt bài cũ.', 5000);
+    }
+  }
+}
+
+// Xin quyền lưu vĩnh viễn để Safari không tự xoá dữ liệu
+async function requestPersist() {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const already = await navigator.storage.persisted();
+      if (!already) await navigator.storage.persist();
+    }
+  } catch (e) {}
+}
+
+// Báo cáo dung lượng đang dùng
+async function storageInfo() {
+  let usage = 0, quota = 0;
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const est = await navigator.storage.estimate();
+      usage = est.usage || 0; quota = est.quota || 0;
+    }
+  } catch (e) {}
+  let persisted = false;
+  try { persisted = await navigator.storage.persisted(); } catch (e) {}
+  const imgs = posts.reduce((n, p) => n + ((p.images || []).length), 0);
+  return { usage, quota, persisted, posts: posts.length, images: imgs };
+}
+function fmtMB(b) {
+  if (!b) return '0 MB';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(0) + ' KB';
+  if (b < 1024 * 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB';
+  return (b / 1024 / 1024 / 1024).toFixed(2) + ' GB';
 }
 // Auto-save draft on input
 function saveDraft() {
@@ -810,8 +947,93 @@ function toggleView(view) {
 function switchSettingsTab(tab, el) {
   document.getElementById('syncTab').hidden = tab !== 'sync';
   document.getElementById('phrasesTab').hidden = tab !== 'phrases';
+  document.getElementById('storageTab').hidden = tab !== 'storage';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  if (tab === 'storage') renderStorage();
+}
+
+// ═══ Bộ nhớ ═══
+async function renderStorage() {
+  const el = document.getElementById('stMeter');
+  el.innerHTML = '<div class="st-note">Đang kiểm tra...</div>';
+  const i = await storageInfo();
+
+  const pct = i.quota ? Math.min(100, (i.usage / i.quota) * 100) : 0;
+  const nearFull = pct > 80;
+
+  el.innerHTML = `
+    <div class="st-big">${fmtMB(i.usage)}</div>
+    <div class="st-sub">đã dùng${i.quota ? ' trên ' + fmtMB(i.quota) + ' khả dụng' : ''}</div>
+    ${i.quota ? `<div class="st-bar"><div class="st-fill ${nearFull ? 'warn' : ''}" style="width:${Math.max(pct, 1)}%"></div></div>
+    <div class="st-sub">Còn trống khoảng <b>${fmtMB(i.quota - i.usage)}</b></div>` : ''}
+    <div class="st-stats">
+      <div><b>${i.posts}</b><span>bài đăng</span></div>
+      <div><b>${i.images}</b><span>hình ảnh</span></div>
+    </div>
+    <div class="st-row ${i.persisted ? 'ok' : 'warn'}">
+      ${i.persisted
+        ? '🔒 <b>Lưu vĩnh viễn: ĐANG BẬT</b><br>Safari sẽ không tự xoá dữ liệu của bạn.'
+        : '⚠️ <b>Lưu vĩnh viễn: CHƯA BẬT</b><br>Safari có thể xoá dữ liệu nếu lâu không mở app. Hãy thêm app vào Màn hình chính và tải file sao lưu thường xuyên.'}
+    </div>`;
+}
+
+// ═══ Sao lưu / Khôi phục ═══
+function exportBackup() {
+  try {
+    const data = JSON.stringify({ v: 1, at: new Date().toISOString(), posts, syncVars });
+    const blob = new Blob([data], { type: 'application/json' });
+    const d = new Date();
+    const name = `kho-content-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+
+    // Ưu tiên API tải của artifact nếu có
+    getDownloads().then(dl => {
+      if (dl) {
+        dl.save({ filename: name, data: blob })
+          .then(() => showToast('✅ Đã tải file sao lưu'))
+          .catch(() => fallbackDownload(blob, name));
+      } else fallbackDownload(blob, name);
+    }).catch(() => fallbackDownload(blob, name));
+  } catch (e) {
+    showToast('❌ Không tạo được file sao lưu', 3000);
+  }
+}
+function fallbackDownload(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  showToast('✅ Đã tải file sao lưu', 3000);
+}
+
+function importBackup(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = ev => {
+    let d;
+    try { d = JSON.parse(ev.target.result); } catch (err) { showToast('❌ File không hợp lệ', 3000); return; }
+    if (!d || !Array.isArray(d.posts)) { showToast('❌ File không đúng định dạng', 3000); return; }
+
+    const msg = `File có ${d.posts.length} bài đăng.\n\nOK = Thêm vào kho hiện tại (${posts.length} bài)\nHuỷ = Thay thế toàn bộ`;
+    const merge = confirm(msg);
+
+    if (merge) {
+      const have = new Set(posts.map(p => p.id));
+      let added = 0;
+      d.posts.forEach(p => { if (!have.has(p.id)) { posts.push(p); added++; } });
+      showToast(`✅ Đã thêm ${added} bài đăng`, 3000);
+    } else {
+      posts = d.posts;
+      showToast(`✅ Đã khôi phục ${posts.length} bài đăng`, 3000);
+    }
+    if (Array.isArray(d.syncVars)) syncVars = d.syncVars;
+
+    saveNow().then(() => { renderPosts(); renderVars(); scanPhrases(); renderStorage(); });
+  };
+  fr.readAsText(file);
 }
 
 // ═══ Image Analysis — smart sort ═══
@@ -1794,9 +2016,9 @@ function doFindReplace() {
 }
 
 // ═══ Common Phrases Detection ═══
-function scanPhrases() {
+function scanPhrases(silent) {
   const contents = posts.filter(p => p.content).map(p => p.content);
-  if (contents.length < 2) { showToast('Cần ít nhất 2 bài có nội dung'); return; }
+  if (contents.length < 2) { if (!silent) showToast('Cần ít nhất 2 bài có nội dung'); return; }
   // Split into sentences
   const allSentences = [];
   contents.forEach(c => {
@@ -2024,15 +2246,20 @@ document.getElementById('modal').addEventListener('click', function(e) { if(e.ta
 document.getElementById('phraseModal').addEventListener('click', function(e) { if(e.target===this) this.hidden=true; });
 
 // ═══ Init ═══
-load();
-// Migrate old single-image posts
-posts.forEach(p => {
-  if (p.image && !p.images) { p.images = [p.image]; delete p.image; }
-  if (!p.images) p.images = [];
-});
-save();
-renderPosts();
-checkDraft();
+(async () => {
+  await load();
+  // Chuyển bài đăng kiểu cũ (1 ảnh) sang kiểu nhiều ảnh
+  posts.forEach(p => {
+    if (p.image && !p.images) { p.images = [p.image]; delete p.image; }
+    if (!p.images) p.images = [];
+  });
+  await saveNow();
+  renderPosts();
+  renderVars();
+  scanPhrases(true);  // true = không hiện thông báo khi mới mở app
+  checkDraft();
+  requestPersist();   // xin Safari giữ dữ liệu, không tự xoá
+})();
 </script>
 
 </body>
