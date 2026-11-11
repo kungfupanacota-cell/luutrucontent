@@ -209,6 +209,22 @@
   .shared-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--accent);
     color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 7px;
     white-space: nowrap; }
+  /* ── Thanh lọc nhóm ── */
+  .group-bar { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 12px;
+    margin: 0 -14px 4px; padding-left: 14px; padding-right: 14px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .group-bar::-webkit-scrollbar { display: none; }
+  .gchip { flex-shrink: 0; padding: 11px 15px; min-height: 44px; border-radius: 22px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--fg);
+    font-family: var(--font-body); font-size: 14.5px; font-weight: 600; cursor: pointer;
+    white-space: nowrap; transition: transform .1s, background .15s;
+    -webkit-tap-highlight-color: transparent; }
+  .gchip b { font-weight: 700; opacity: .55; margin-left: 2px; }
+  .gchip:active { transform: scale(0.94); }
+  .gchip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .gchip.on b { opacity: .8; }
+  .gchip.brand { border-style: dashed; }
+
   /* ── Tìm câu chung ── */
   .ph-found { padding: 14px; border-radius: 12px; margin-bottom: 12px;
     background: var(--accent-light); border: 1px solid var(--accent); }
@@ -779,6 +795,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input class="search-input" id="searchInput" type="search" placeholder="Tìm bài đăng..." oninput="renderPosts()">
   </div>
+  <div class="group-bar" id="groupBar" hidden></div>
   <div id="draftBanner" hidden></div>
   <div class="posts" id="postsContainer"></div>
 </div>
@@ -993,7 +1010,7 @@ let currentImages = []; // array of data URLs
 let lbImages = []; let lbIdx = 0;
 
 // ═══ Phiên bản & tự kiểm tra bản mới ═══
-const APP_VERSION = '2026.11.11-23';
+const APP_VERSION = '2026.11.11-24';
 
 async function checkUpdate(manual) {
   try {
@@ -2958,6 +2975,138 @@ function deletePhrase(b64) {
   showToast(`Đã xoá câu trong ${count} bài`);
 }
 
+
+// ══════════════════════════════════════════════════════════
+//  PHÂN NHÓM TỰ ĐỘNG — lọc sản phẩm cho dễ tìm
+// ══════════════════════════════════════════════════════════
+let activeGroup = '';   // '' = tất cả
+
+// Bỏ dấu tiếng Việt để so khớp rộng hơn
+function noAccent(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+}
+
+// Loại sản phẩm — từ khoá viết không dấu, khớp cả có dấu lẫn không dấu
+const CATS = [
+  { id: 'cap',     icon: '🔌', name: 'Cáp sạc',      kw: ['cap sac', 'cap du', 'day sac', 'day cap', 'lightning', 'micro usb', 'cap type', 'cap usb', '4in1', '3in1', '2in1', 'cap truyen', 'day du'] },
+  { id: 'cusac',   icon: '⚡', name: 'Củ sạc',       kw: ['cu sac', 'cu cam', 'coc sac', 'adapter', 'adaptor', 'sac tuong', 'gan ', 'sac treo tuong'] },
+  { id: 'pin',     icon: '🔋', name: 'Pin dự phòng', kw: ['pin du phong', 'sac du phong', 'power bank', 'powerbank', 'mah'] },
+  { id: 'tainghe', icon: '🎧', name: 'Tai nghe',     kw: ['tai nghe', 'airpod', 'headphone', 'earbud', 'earphone', 'chup tai', 'nhet tai'] },
+  { id: 'op',      icon: '📱', name: 'Ốp & bao da',  kw: ['op lung', 'op dien thoai', 'bao da', 'bao silicon', 'case ', 'vo bao'] },
+  { id: 'cuong',   icon: '🛡️', name: 'Cường lực',    kw: ['cuong luc', 'dan man', 'kinh cuong', 'mieng dan', 'screen protect', 'dan camera'] },
+  { id: 'giado',   icon: '🗜️', name: 'Giá đỡ',       kw: ['gia do', 'kep dien thoai', 'chan de', 'tripod', 'gimbal', 'gay tu suong', 'de dien thoai'] },
+  { id: 'loa',     icon: '🔊', name: 'Loa',          kw: ['loa bluetooth', 'loa mini', 'loa keo', 'speaker', 'loa vi tinh'] },
+  { id: 'dongho',  icon: '⌚', name: 'Đồng hồ',      kw: ['dong ho', 'smartwatch', 'smart watch', 'vong deo tay'] },
+  { id: 'phimchuot', icon: '⌨️', name: 'Phím & chuột', kw: ['ban phim', 'chuot khong day', 'chuot gaming', 'keyboard', 'mouse'] },
+  { id: 'luutru',  icon: '💾', name: 'Thẻ nhớ & USB', kw: ['the nho', 'usb ', 'o cung', 'sd card', 'microsd', 'flash drive'] },
+  { id: 'hub',     icon: '🔗', name: 'Hub & chuyển đổi', kw: ['hub ', 'chuyen doi', 'dau chuyen', 'otg', 'docking'] },
+  { id: 'quat',    icon: '🌀', name: 'Quạt & tản nhiệt', kw: ['quat ', 'tan nhiet', 'cooling'] },
+  { id: 'den',     icon: '💡', name: 'Đèn',          kw: ['den led', 'den ban', 'den livestream', 'den flash', 'ring light'] },
+  { id: 'xe',      icon: '🚗', name: 'Phụ kiện ô tô', kw: ['tren o to', 'tren xe', 'kep xe', 'sac o to', 'camera hanh trinh'] },
+];
+
+// Từ IN HOA không phải tên hãng
+const NOT_BRAND = new Set(('CAO CAP SAC DAY DU MOI HANG CHINH GIA FREE SHIP NEW SALE HOT SIEU BEN TOT RE ' +
+  'USB PD QC TYPE MAH GB TB MB IN VND VNĐ LED OTG HD PRO MAX PLUS MINI ULTRA LITE AIR ' +
+  'COMBO FULL BOX SET DEAL VOUCHER INBOX ALO CALL ZALO FB SHOP STORE ' +
+  'BAO HANH DOI TRA TOAN QUOC NHANH TAY SO LUONG HAN CHE GOM LOAI MAU SIZE ' +
+  'KHUYEN MAI UU DAI TANG KEM CHUAN AUTH REAL FAKE OK NO YES AND FOR THE ' +
+  'IPHONE SAMSUNG ANDROID IOS IPAD MACBOOK LAPTOP PC TV').split(/\s+/));
+
+// Tự học tên hãng xuất hiện ở từ 2 bài trở lên
+function detectBrands() {
+  const cnt = new Map();
+  posts.forEach(p => {
+    if (!p.content) return;
+    const seen = new Set();
+    // token IN HOA thuần ASCII, 3-14 ký tự (tên hãng hiếm khi có dấu)
+    (p.content.match(/\b[A-Z][A-Z0-9]{2,13}\b/g) || []).forEach(t => {
+      if (NOT_BRAND.has(t)) return;
+      if (/^\d+$/.test(t)) return;          // toàn số
+      if (/\d/.test(t) && /[-]/.test(t)) return;  // mã model kiểu PC-10
+      seen.add(t);
+    });
+    seen.forEach(t => cnt.set(t, (cnt.get(t) || 0) + 1));
+  });
+  return [...cnt.entries()].filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1]).slice(0, 8)
+    .map(([t, n]) => ({ id: 'b:' + t, name: t, icon: '🏷️', count: n, type: 'brand' }));
+}
+
+// Loại của một bài (có thể thuộc nhiều loại)
+// Loại cụ thể thắng loại chung, tránh gán chồng
+const BEATS = { hub: ['cap'], pin: ['cusac'], tainghe: ['loa'], xe: ['giado', 'cusac'], dongho: ['phimchuot'] };
+
+function catsOf(post) {
+  const t = noAccent((post.content || '') + ' ');
+  let out = [];
+  CATS.forEach(c => { if (c.kw.some(k => t.includes(k))) out.push(c.id); });
+  Object.keys(BEATS).forEach(win => {
+    if (out.includes(win)) out = out.filter(id => id === win || !BEATS[win].includes(id));
+  });
+  return out;
+}
+
+function postInGroup(post, g) {
+  if (!g) return true;
+  if (g === '__none__') return catsOf(post).length === 0;
+  if (g.startsWith('b:')) {
+    const brand = g.slice(2);
+    return new RegExp('\\b' + brand + '\\b').test(post.content || '');
+  }
+  return catsOf(post).includes(g);
+}
+
+// Dựng danh sách nhóm, chỉ giữ nhóm có bài
+function buildGroups() {
+  const counts = new Map();
+  let none = 0;
+  posts.forEach(p => {
+    const cs = catsOf(p);
+    if (!cs.length) none++;
+    cs.forEach(id => counts.set(id, (counts.get(id) || 0) + 1));
+  });
+
+  const cat = CATS.filter(c => counts.get(c.id))
+    .map(c => ({ id: c.id, name: c.name, icon: c.icon, count: counts.get(c.id), type: 'cat' }))
+    .sort((a, b) => b.count - a.count);
+
+  const brands = detectBrands();
+  const groups = [...cat, ...brands];
+  if (none && none < posts.length) {
+    groups.push({ id: '__none__', name: 'Khác', icon: '📦', count: none, type: 'cat' });
+  }
+  return groups;
+}
+
+function renderGroups() {
+  const bar = document.getElementById('groupBar');
+  if (!bar) return;
+
+  // ít bài thì không cần lọc nhóm
+  if (posts.length < 4) { bar.hidden = true; activeGroup = ''; return; }
+
+  const groups = buildGroups();
+  if (!groups.length) { bar.hidden = true; activeGroup = ''; return; }
+
+  // nhóm đang chọn đã biến mất thì về "Tất cả"
+  if (activeGroup && !groups.some(g => g.id === activeGroup)) activeGroup = '';
+
+  bar.hidden = false;
+  bar.innerHTML =
+    `<button class="gchip${activeGroup ? '' : ' on'}" onclick="pickGroup('')">Tất cả <b>${posts.length}</b></button>` +
+    groups.map(g => `<button class="gchip${activeGroup === g.id ? ' on' : ''}${g.type === 'brand' ? ' brand' : ''}"
+      onclick="pickGroup('${g.id}')">${g.icon} ${esc(g.name)} <b>${g.count}</b></button>`).join('');
+}
+
+function pickGroup(id) {
+  activeGroup = (activeGroup === id) ? '' : id;
+  renderPosts();
+  const bar = document.getElementById('groupBar');
+  if (bar) bar.scrollTo({ left: 0, behavior: 'smooth' });
+}
+
 // ═══ Render Posts ═══
 function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 function formatDate(iso) {
@@ -2980,10 +3129,17 @@ function renderPosts() {
 
   clearOldMarks();   // bỏ mốc chia sẻ đã quá 12 tiếng
 
-  // Lọc theo từ khoá
+  renderGroups();   // thanh lọc nhóm
+
+  // Lọc theo từ khoá (bỏ dấu để gõ không dấu vẫn tìm được) + theo nhóm
   const si = document.getElementById('searchInput');
-  const q = (si && !sw.hidden ? si.value : '').trim().toLowerCase();
-  let list = q ? posts.filter(p => (p.content || '').toLowerCase().includes(q)) : posts.slice();
+  const q = (si && !sw.hidden ? si.value : '').trim();
+  const qn = noAccent(q);
+  let list = posts.filter(p => {
+    if (!postInGroup(p, activeGroup)) return false;
+    if (!qn) return true;
+    return noAccent(p.content || '').includes(qn);
+  });
 
   // Thứ tự: ⭐ ghim trên cùng → sẵn sàng → đang khoá (sắp mở khoá lên trước)
   const rank = p => p.starred ? 0 : (isLocked(p) ? 2 : 1);
@@ -2998,12 +3154,17 @@ function renderPosts() {
   const starred = posts.filter(p => p.starred).length;
   const locked = posts.filter(p => isLocked(p)).length;
   const ready = posts.length - locked;
-  document.getElementById('postCount').textContent = locked
-    ? `${ready} bài sẵn sàng · ${locked} đang khoá${starred ? ' · ⭐ ' + starred : ''}`
-    : posts.length + ' bài đăng' + (starred ? ' · ⭐ ' + starred : '');
+  const filtering = !!(activeGroup || qn);
+  document.getElementById('postCount').textContent = filtering
+    ? `Hiện ${list.length}/${posts.length} bài`
+    : (locked
+      ? `${ready} bài sẵn sàng · ${locked} đang khoá${starred ? ' · ⭐ ' + starred : ''}`
+      : posts.length + ' bài đăng' + (starred ? ' · ⭐ ' + starred : ''));
 
   if (!list.length) {
-    c.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Không tìm thấy</h3><p>Thử từ khoá khác</p></div>';
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><h3>Không tìm thấy</h3>
+      <p>${activeGroup ? 'Không có bài nào trong nhóm này' : 'Thử từ khoá khác'}</p></div>
+      ${activeGroup ? '<button class="st-btn" onclick="pickGroup(\'\')">Xem tất cả bài đăng</button>' : ''}`;
     return;
   }
 
