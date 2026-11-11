@@ -1010,7 +1010,7 @@ let currentImages = []; // array of data URLs
 let lbImages = []; let lbIdx = 0;
 
 // ═══ Phiên bản & tự kiểm tra bản mới ═══
-const APP_VERSION = '2026.11.11-24';
+const APP_VERSION = '2026.11.11-25';
 
 async function checkUpdate(manual) {
   try {
@@ -2221,7 +2221,9 @@ function delGreeting(id) {
 }
 
 // ═══════════ NGÔI SAO + KHOÁ 12 TIẾNG ═══════════
-const LOCK_MS = 12 * 60 * 60 * 1000;   // 12 tiếng
+const LOCK_MS = 12 * 60 * 60 * 1000;        // bài thường: 12 tiếng
+const LOCK_MS_STAR = 5 * 60 * 60 * 1000;    // bài ⭐ ghim: 5 tiếng
+const lockMsOf = p => p.starred ? LOCK_MS_STAR : LOCK_MS;
 
 function todayKey() {
   const d = new Date();
@@ -2230,9 +2232,8 @@ function todayKey() {
 
 // Thời gian còn lại bị khoá (ms). 0 = chia sẻ được.
 function lockLeft(p) {
-  if (p.starred) return 0;                 // bài gắn sao không bao giờ bị khoá
   if (!p.sharedAt) return 0;
-  const left = LOCK_MS - (Date.now() - new Date(p.sharedAt).getTime());
+  const left = lockMsOf(p) - (Date.now() - new Date(p.sharedAt).getTime());
   return left > 0 ? left : 0;
 }
 function isLocked(p) { return lockLeft(p) > 0; }
@@ -2251,8 +2252,8 @@ function toggleStar(id, e) {
   save();
   renderPosts();
   showToast(post.starred
-    ? '⭐ Đã ghim — bài này luôn ở đầu, chia sẻ được liên tục'
-    : 'Đã bỏ ghim — bài này sẽ bị khoá 12 tiếng sau mỗi lần chia sẻ', 3000);
+    ? '⭐ Đã ghim — luôn ở đầu, chỉ khoá 5 tiếng sau mỗi lần đăng'
+    : 'Đã bỏ ghim — bài này sẽ khoá 12 tiếng sau mỗi lần đăng', 3000);
 }
 
 function markShared(id) {
@@ -2268,7 +2269,7 @@ function markShared(id) {
 function clearOldMarks() {
   let changed = false;
   posts.forEach(p => {
-    if (p.sharedAt && !p.starred && Date.now() - new Date(p.sharedAt).getTime() >= LOCK_MS) {
+    if (p.sharedAt && Date.now() - new Date(p.sharedAt).getTime() >= lockMsOf(p)) {
       delete p.sharedAt; delete p.sharedDay; changed = true;
     }
   });
@@ -2282,7 +2283,7 @@ function startLockTimer() {
   clearInterval(_lockTimer);
   _lockTimer = setInterval(() => {
     if (currentView !== 'main') return;
-    if (posts.some(p => p.sharedAt && !p.starred)) { clearOldMarks(); renderPosts(); }
+    if (posts.some(p => p.sharedAt)) { clearOldMarks(); renderPosts(); }
   }, 60000);
 }
 
@@ -2303,13 +2304,27 @@ function lockedHint(id, e) {
   if (!post) return;
   const left = lockLeft(post);
   if (!left) { renderPosts(); return; }
-  if (confirm(
-    `BÀI NÀY ĐANG KHOÁ\n\nCòn ${fmtLeft(left)} nữa mới đăng lại được.\n\n` +
-    `Muốn đăng liên tục không giới hạn?\nOK = Ghim ⭐ bài này ngay`
-  )) {
+
+  // Bài ⭐ đã ở mức khoá ngắn nhất rồi
+  if (post.starred) {
+    showToast(`🔒 Bài ghim ⭐ khoá 5 tiếng — còn ${fmtLeft(left)} nữa`, 3500);
+    return;
+  }
+
+  // Ghim vào sẽ rút khoá từ 12 xuống 5 tiếng
+  const after = LOCK_MS_STAR - (Date.now() - new Date(post.sharedAt).getTime());
+  const msg = after <= 0
+    ? `BÀI NÀY ĐANG KHOÁ\n\nCòn ${fmtLeft(left)} nữa (bài thường khoá 12 tiếng).\n\n` +
+      `Ghim ⭐ thì chỉ khoá 5 tiếng — bài này đã qua 5 tiếng nên sẽ mở khoá NGAY.\n\nOK = Ghim ⭐ ngay`
+    : `BÀI NÀY ĐANG KHOÁ\n\nCòn ${fmtLeft(left)} nữa (bài thường khoá 12 tiếng).\n\n` +
+      `Ghim ⭐ thì chỉ khoá 5 tiếng — rút xuống còn ${fmtLeft(after)}.\n\nOK = Ghim ⭐ ngay`;
+
+  if (confirm(msg)) {
     post.starred = true;
-    save(); renderPosts();
-    showToast('⭐ Đã ghim — giờ đăng được rồi', 3000);
+    save(); clearOldMarks(); renderPosts();
+    showToast(isLocked(post)
+      ? `⭐ Đã ghim — còn ${fmtLeft(lockLeft(post))} nữa`
+      : '⭐ Đã ghim — mở khoá rồi, đăng được ngay', 3000);
   }
 }
 
@@ -3141,12 +3156,12 @@ function renderPosts() {
     return noAccent(p.content || '').includes(qn);
   });
 
-  // Thứ tự: ⭐ ghim trên cùng → sẵn sàng → đang khoá (sắp mở khoá lên trước)
-  const rank = p => p.starred ? 0 : (isLocked(p) ? 2 : 1);
+  // Thứ tự: ⭐ đăng được → thường đăng được → ⭐ đang khoá → thường đang khoá
+  const rank = p => isLocked(p) ? (p.starred ? 2 : 3) : (p.starred ? 0 : 1);
   list = list.slice().sort((a, b) => {
     const d = rank(a) - rank(b);
     if (d) return d;
-    if (rank(a) === 2) return lockLeft(a) - lockLeft(b);   // sắp mở khoá lên trước
+    if (isLocked(a)) return lockLeft(a) - lockLeft(b);   // sắp mở khoá lên trước
     return 0;
   });
 
