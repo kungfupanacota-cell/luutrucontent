@@ -209,6 +209,40 @@
   .shared-tag { display: inline-flex; align-items: center; gap: 3px; background: var(--accent);
     color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 7px;
     white-space: nowrap; }
+  /* ── Tìm câu chung ── */
+  .ph-found { padding: 14px; border-radius: 12px; margin-bottom: 12px;
+    background: var(--accent-light); border: 1px solid var(--accent); }
+  .ph-found.warn { background: var(--warning-light); border-color: var(--warning); }
+  .ph-found-top { font-size: 14px; color: var(--fg); }
+  .ph-found-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ph-found-acts button { flex: 1; min-width: 130px; min-height: 46px; }
+
+  /* ── Ngôi sao & khoá ── */
+  .thumb-wrap { position: relative; flex-shrink: 0; }
+  .star-btn { position: absolute; top: -7px; left: -7px; width: 30px; height: 30px;
+    border-radius: 50%; border: 2px solid var(--surface);
+    background: rgba(255,255,255,.95); color: #B9B9B4; font-size: 17px; line-height: 1;
+    cursor: pointer; padding: 0; z-index: 3; box-shadow: 0 1px 4px rgba(0,0,0,.18);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .12s, background .15s; -webkit-tap-highlight-color: transparent; }
+  .star-btn:active { transform: scale(0.82); }
+  .star-btn.on { background: #FFC93C; color: #fff; border-color: #fff; }
+  .post-card.starred { border-color: #E8B63A; }
+  .post-card.starred .compact-row { background: linear-gradient(90deg, #FFF9E8 0%, transparent 60%); }
+  .star-tag { display: inline-flex; align-items: center; background: #FFF4D6; color: #9A6A00;
+    font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 7px; white-space: nowrap; }
+  .lock-tag { display: inline-flex; align-items: center; background: var(--surface-alt);
+    color: var(--fg-secondary); font-size: 11px; font-weight: 700; padding: 3px 8px;
+    border-radius: 7px; white-space: nowrap; }
+  .compact-copy.locked { background: var(--surface-alt); color: var(--fg-secondary);
+    border: 1px solid var(--border); font-size: 13px; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .star-btn { background: rgba(40,40,38,.95); color: #6B6B66; border-color: var(--surface); }
+    :root:not([data-theme="light"]) .star-btn.on { background: #E8B63A; color: #2A2411; border-color: var(--surface); }
+    :root:not([data-theme="light"]) .post-card.starred .compact-row { background: linear-gradient(90deg, #2A2411 0%, transparent 60%); }
+    :root:not([data-theme="light"]) .star-tag { background: #3A2F12; color: #E8C06A; }
+  }
+
   .thumb-check { position: absolute; inset: 0; background: rgba(45,122,95,.55);
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-size: 26px; font-weight: 700; }
@@ -869,9 +903,15 @@
         </div>
       </div>
       <div class="ss-body" id="phrasesContainer">
+        <div class="search-wrap" style="margin-bottom:10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="phraseSearch" type="search"
+            placeholder="Tìm đoạn chữ bất kỳ trong các bài..." oninput="phraseSearchRun()">
+        </div>
+        <div id="phraseFound"></div>
         <button class="add-var-btn" onclick="scanPhrases()" style="margin-top:0;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Quét tìm câu chung
+          Quét tự động câu lặp lại
         </button>
         <div id="phrasesList"></div>
       </div>
@@ -953,7 +993,7 @@ let currentImages = []; // array of data URLs
 let lbImages = []; let lbIdx = 0;
 
 // ═══ Phiên bản & tự kiểm tra bản mới ═══
-const APP_VERSION = '2026.11.10-22';
+const APP_VERSION = '2026.11.11-23';
 
 async function checkUpdate(manual) {
   try {
@@ -2163,14 +2203,41 @@ function delGreeting(id) {
   saveCatalog(); renderGreetBank();
 }
 
-// ═══════════ ĐÁNH DẤU ĐÃ CHIA SẺ (tự hết sau khi sang ngày mới) ═══════════
+// ═══════════ NGÔI SAO + KHOÁ 12 TIẾNG ═══════════
+const LOCK_MS = 12 * 60 * 60 * 1000;   // 12 tiếng
+
 function todayKey() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
-function isSharedToday(p) {
-  return !!p.sharedDay && p.sharedDay === todayKey();
+
+// Thời gian còn lại bị khoá (ms). 0 = chia sẻ được.
+function lockLeft(p) {
+  if (p.starred) return 0;                 // bài gắn sao không bao giờ bị khoá
+  if (!p.sharedAt) return 0;
+  const left = LOCK_MS - (Date.now() - new Date(p.sharedAt).getTime());
+  return left > 0 ? left : 0;
 }
+function isLocked(p) { return lockLeft(p) > 0; }
+
+function fmtLeft(ms) {
+  const m = Math.ceil(ms / 60000);
+  const h = Math.floor(m / 60), mm = m % 60;
+  return h ? `${h}g${mm ? ' ' + mm + 'p' : ''}` : `${mm}p`;
+}
+
+function toggleStar(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  post.starred = !post.starred;
+  save();
+  renderPosts();
+  showToast(post.starred
+    ? '⭐ Đã ghim — bài này luôn ở đầu, chia sẻ được liên tục'
+    : 'Đã bỏ ghim — bài này sẽ bị khoá 12 tiếng sau mỗi lần chia sẻ', 3000);
+}
+
 function markShared(id) {
   const post = posts.find(p => p.id === id);
   if (!post) return;
@@ -2179,28 +2246,61 @@ function markShared(id) {
   save();
   renderPosts();
 }
-// Dọn dấu của những ngày trước
+
+// Dọn mốc chia sẻ đã quá 12 tiếng
 function clearOldMarks() {
-  const t = todayKey();
   let changed = false;
-  posts.forEach(p => { if (p.sharedDay && p.sharedDay !== t) { delete p.sharedDay; delete p.sharedAt; changed = true; } });
+  posts.forEach(p => {
+    if (p.sharedAt && !p.starred && Date.now() - new Date(p.sharedAt).getTime() >= LOCK_MS) {
+      delete p.sharedAt; delete p.sharedDay; changed = true;
+    }
+  });
   if (changed) save();
   return changed;
 }
-// Kiểm tra lại khi quay lại app (phòng khi qua nửa đêm)
+
+// Đếm ngược: cứ mỗi phút vẽ lại nếu đang có bài bị khoá
+let _lockTimer = null;
+function startLockTimer() {
+  clearInterval(_lockTimer);
+  _lockTimer = setInterval(() => {
+    if (currentView !== 'main') return;
+    if (posts.some(p => p.sharedAt && !p.starred)) { clearOldMarks(); renderPosts(); }
+  }, 60000);
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
-  if (clearOldMarks()) renderPosts();
+  clearOldMarks();
+  if (currentView === 'main') renderPosts();
   checkUpdate(false);          // quay lại app thì kiểm tra bản mới luôn
 });
 
 // ═══════════ CHẾ ĐỘ ĐĂNG BÀI: chọn ảnh → chia sẻ ═══════════
 let flow = null; // { postId, picked:Set, textOn:bool }
 
+// Bấm vào nút đang khoá
+function lockedHint(id, e) {
+  if (e) e.stopPropagation();
+  const post = posts.find(p => p.id === id);
+  if (!post) return;
+  const left = lockLeft(post);
+  if (!left) { renderPosts(); return; }
+  if (confirm(
+    `BÀI NÀY ĐANG KHOÁ\n\nCòn ${fmtLeft(left)} nữa mới đăng lại được.\n\n` +
+    `Muốn đăng liên tục không giới hạn?\nOK = Ghim ⭐ bài này ngay`
+  )) {
+    post.starred = true;
+    save(); renderPosts();
+    showToast('⭐ Đã ghim — giờ đăng được rồi', 3000);
+  }
+}
+
 function openFlow(id, e) {
   if (e) e.stopPropagation();
   const post = posts.find(p => p.id === id);
   if (!post) return;
+  if (isLocked(post)) { lockedHint(id); return; }
 
   const imgs = post.images || [];
   flow = { postId: id, picked: new Set(imgs.map((_, i) => i)), textOn: !!post.content, shared: false, copied: false };
@@ -2775,6 +2875,52 @@ function renderPhrases(phrases) {
   `).join('');
 }
 
+// ═══ Tìm kiếm câu chung thủ công ═══
+function phraseSearchRun() {
+  const q = document.getElementById('phraseSearch').value.trim();
+  const box = document.getElementById('phraseFound');
+  if (!q) { box.innerHTML = ''; return; }
+
+  const hits = posts.filter(p => p.content && p.content.includes(q));
+  const b64 = btoa(encodeURIComponent(q));
+
+  if (hits.length) {
+    box.innerHTML = `<div class="ph-found">
+      <div class="ph-found-top">Tìm thấy trong <b>${hits.length}</b> bài đăng</div>
+      <div class="phrase-text" style="margin:8px 0">${esc(q)}</div>
+      <div class="ph-found-acts">
+        <button class="phrase-edit-btn" onclick="openPhraseEdit('${b64}')">Sửa đồng bộ</button>
+        <button class="phrase-del-btn" onclick="deletePhrase('${b64}')">Xoá khỏi ${hits.length} bài</button>
+      </div>
+    </div>`;
+  } else {
+    box.innerHTML = `<div class="ph-found warn">
+      <div class="ph-found-top">Chưa bài nào có đoạn này</div>
+      <div class="phrase-text" style="margin:8px 0">${esc(q)}</div>
+      <div class="ph-found-acts">
+        <button class="phrase-edit-btn" onclick="addPhraseToAll('${b64}','end')">➕ Thêm vào CUỐI mọi bài</button>
+        <button class="phrase-edit-btn" onclick="addPhraseToAll('${b64}','start')">➕ Thêm vào ĐẦU mọi bài</button>
+      </div>
+    </div>`;
+  }
+}
+
+// Thêm một câu vào tất cả bài đăng
+function addPhraseToAll(b64, where) {
+  const text = decodeURIComponent(atob(b64));
+  const targets = posts.filter(p => p.content && !p.content.includes(text));
+  if (!targets.length) { showToast('Mọi bài đã có đoạn này rồi', 3000); return; }
+  if (!confirm(`Thêm đoạn này vào ${where === 'end' ? 'CUỐI' : 'ĐẦU'} ${targets.length} bài đăng?\n\n"${text}"`)) return;
+
+  targets.forEach(p => {
+    p.content = where === 'end'
+      ? (p.content.trimEnd() + '\n' + text)
+      : (text + '\n' + p.content.trimStart());
+  });
+  save(); renderPosts(); phraseSearchRun(); scanPhrases(true);
+  showToast(`✅ Đã thêm vào ${targets.length} bài`, 3000);
+}
+
 let editingPhrase = '';
 function openPhraseEdit(b64) {
   editingPhrase = decodeURIComponent(atob(b64));
@@ -2791,8 +2937,10 @@ function applyPhraseEdit() {
       count++;
     }
   });
-  save(); renderPosts(); scanPhrases();
+  save(); renderPosts(); scanPhrases(true);
   document.getElementById('phraseModal').hidden = true;
+  const ps = document.getElementById('phraseSearch');
+  if (ps && ps.value.trim()) { ps.value = newText; phraseSearchRun(); }
   showToast(`Đã cập nhật ${count} bài`);
 }
 function deletePhrase(b64) {
@@ -2806,7 +2954,7 @@ function deletePhrase(b64) {
       count++;
     }
   });
-  save(); renderPosts(); scanPhrases();
+  save(); renderPosts(); scanPhrases(true); phraseSearchRun();
   showToast(`Đã xoá câu trong ${count} bài`);
 }
 
@@ -2830,22 +2978,29 @@ function renderPosts() {
     return;
   }
 
-  clearOldMarks();   // sang ngày mới thì bỏ dấu cũ
+  clearOldMarks();   // bỏ mốc chia sẻ đã quá 12 tiếng
 
   // Lọc theo từ khoá
   const si = document.getElementById('searchInput');
   const q = (si && !sw.hidden ? si.value : '').trim().toLowerCase();
   let list = q ? posts.filter(p => (p.content || '').toLowerCase().includes(q)) : posts.slice();
 
-  // Bài đã chia sẻ hôm nay trôi xuống cuối
-  list = list.slice().sort((a, b) => (isSharedToday(a) ? 1 : 0) - (isSharedToday(b) ? 1 : 0));
+  // Thứ tự: ⭐ ghim trên cùng → sẵn sàng → đang khoá (sắp mở khoá lên trước)
+  const rank = p => p.starred ? 0 : (isLocked(p) ? 2 : 1);
+  list = list.slice().sort((a, b) => {
+    const d = rank(a) - rank(b);
+    if (d) return d;
+    if (rank(a) === 2) return lockLeft(a) - lockLeft(b);   // sắp mở khoá lên trước
+    return 0;
+  });
 
-  // Đếm số bài còn lại chưa chia sẻ
-  const left = posts.filter(p => !isSharedToday(p)).length;
-  const doneToday = posts.length - left;
-  document.getElementById('postCount').textContent = doneToday
-    ? `${left} bài chưa đăng · ${doneToday} đã đăng hôm nay`
-    : posts.length + ' bài đăng';
+  // Tiêu đề: đếm bài sẵn sàng chia sẻ
+  const starred = posts.filter(p => p.starred).length;
+  const locked = posts.filter(p => isLocked(p)).length;
+  const ready = posts.length - locked;
+  document.getElementById('postCount').textContent = locked
+    ? `${ready} bài sẵn sàng · ${locked} đang khoá${starred ? ' · ⭐ ' + starred : ''}`
+    : posts.length + ' bài đăng' + (starred ? ' · ⭐ ' + starred : '');
 
   if (!list.length) {
     c.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>Không tìm thấy</h3><p>Thử từ khoá khác</p></div>';
@@ -2861,13 +3016,20 @@ function renderPosts() {
     const metaParts = [formatDate(post.date), imgInfo].filter(Boolean).join(' · ');
 
     // Compact row (always visible)
+    const starBtn = `<button class="star-btn${post.starred ? ' on' : ''}" onclick="toggleStar('${post.id}', event)"
+      title="${post.starred ? 'Bỏ ghim' : 'Ghim để đăng liên tục'}">${post.starred ? '★' : '☆'}</button>`;
+
     const thumbHtml = images.length
-      ? `<div class="compact-thumb">
-          <img src="${images[0]}" alt="" loading="lazy">
-          ${images.length > 1 ? `<span class="img-count-badge">${images.length}</span>` : ''}
-          ${isSharedToday(post) ? '<span class="thumb-check">✓</span>' : ''}
+      ? `<div class="thumb-wrap">
+          <div class="compact-thumb">
+            <img src="${images[0]}" alt="" loading="lazy">
+            ${images.length > 1 ? `<span class="img-count-badge">${images.length}</span>` : ''}
+            ${isLocked(post) ? '<span class="thumb-check">🔒</span>' : ''}
+          </div>${starBtn}
         </div>`
-      : `<div class="compact-no-img"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
+      : `<div class="thumb-wrap">
+          <div class="compact-no-img"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>${starBtn}
+        </div>`;
 
     // Expanded content
     let imagesHtml = '';
@@ -2883,28 +3045,36 @@ function renderPosts() {
       }).join('') + '</div>';
     }
 
-    const done = isSharedToday(post);
-    const sharedTime = done && post.sharedAt
+    const star = !!post.starred;
+    const left = lockLeft(post);
+    const locked = left > 0;
+    const sharedTime = post.sharedAt
       ? new Date(post.sharedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
       : '';
 
-    return `<div class="post-card${done ? ' shared' : ''}" data-id="${post.id}">
+    let metaHtml;
+    if (locked) metaHtml = `<span class="lock-tag">🔒 Mở sau ${fmtLeft(left)}</span>`;
+    else if (star && post.sharedAt) metaHtml = `<span class="star-tag">⭐ Ghim · ${sharedTime}</span>`;
+    else if (star) metaHtml = `<span class="star-tag">⭐ Ghim</span>`;
+    else metaHtml = metaParts;
+
+    return `<div class="post-card${locked ? ' shared' : ''}${star ? ' starred' : ''}" data-id="${post.id}">
       <div class="compact-row" onclick="togglePost('${post.id}', event)">
         ${thumbHtml}
         <div class="compact-info">
           <div class="compact-preview">${esc(preview)}</div>
-          <div class="compact-meta">${done
-            ? `<span class="shared-tag">✓ Đã đăng ${sharedTime}</span>`
-            : metaParts}</div>
+          <div class="compact-meta">${metaHtml}</div>
         </div>
         <div class="compact-actions">
           ${post.content ? `<button class="compact-cp" onclick="copyText('${post.id}', event)" title="Copy nội dung">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           </button>` : ''}
-          <button class="compact-copy" onclick="openFlow('${post.id}', event)" title="Đăng bài này">
+          ${locked
+            ? `<button class="compact-copy locked" onclick="lockedHint('${post.id}', event)" title="Đang khoá">🔒 ${fmtLeft(left)}</button>`
+            : `<button class="compact-copy" onclick="openFlow('${post.id}', event)" title="Đăng bài này">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
             Đăng
-          </button>
+          </button>`}
           <span class="compact-expand" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
@@ -2997,6 +3167,7 @@ document.getElementById('phraseModal').addEventListener('click', function(e) { i
   scanPhrases(true);  // true = không hiện thông báo khi mới mở app
   checkDraft();
   requestPersist();   // xin Safari giữ dữ liệu, không tự xoá
+  startLockTimer();   // đếm ngược mở khoá
   setTimeout(() => checkUpdate(false), 1500);   // âm thầm kiểm tra bản mới
 })();
 </script>
